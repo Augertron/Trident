@@ -1,0 +1,158 @@
+<!--
+ 
+ @LICENSE@
+-->
+
+
+<project name="Examples" default="examples" basedir="..">
+ <!-- =================================================================== -->
+ <!-- init, compile and run the examples                                  -->
+ <!-- =================================================================== -->
+
+ <property name="build" location="build"/>
+ <property name="examples.src" location="examples"/>
+ <property name="examples.dest" location="${build}/examples"/>
+ <property name="start.dir" value=""/>
+ <property environment="env"/>
+
+ <property name="test.error.mode" value="failatend"/>
+ <property name="test.print.results" value="failedtests"/>
+ <property name="test.verbosity" value="true"/>
+ <property name="test.fpco.cmdline" value=""/>
+ <property name="test.llv.cmdline" value=""/>
+
+
+ <property name="build.compiler" value="jikes"/>
+
+ <target name="setllvdir">
+   <available file="${build}/llv-obj/Release" property="llv.dir" value="${build}/llv-obj/Release/bin"/>
+   <available file="${build}/llv-obj/Debug" property="llv.dir" value="${build}/llv-obj/Debug/bin"/>
+ </target>
+
+ <target name="init" depends="setllvdir" >
+   <echo message="Copy files from examples dir to build/examples dir"/>
+   <copy todir="${build}/examples/${start.dir}" 
+         filtering="${filtering}">
+      <fileset dir="${examples.src}/${start.dir}"
+               includes="**/*.c, **/*.llv" >
+      </fileset>
+   </copy>
+   <copy todir="${build}/fp/util/ant" 
+         filtering="${filtering}"
+         file="fp/util/ant/ExecExamples.java">
+   </copy>
+ </target>
+
+ <target name="bytecode" depends="init">
+   <echo message="Run llvm gcc on .c example source file to produce .o bytecode file"/>
+   <apply executable="${env.LLVMGCCDIR}/bin/llvm-gcc" dest="${build}/examples/${start.dir}" >
+     <arg value="-c"/>
+     <arg value="-Wa,-disable-opt"/>
+     <srcfile/>
+     <arg value="-o"/>
+     <targetfile/>
+     <fileset dir="${build}/examples/${start.dir}"
+              includes="**/*.c">
+     </fileset>
+     <mapper type="glob" from="*.c" to="*.o"/>
+   </apply>
+ </target>
+ 
+ <target name="convert" depends="bytecode">
+   <echo message="Run llv  on .o bytecode file to produce .llv assembly file"/>
+   <apply executable="${llv.dir}/llv" dest="${build}/examples/${start.dir}" >
+     <arg line="${test.llv.cmdline}"/>
+     <arg value="-f"/>
+     <arg value="-march=v"/>
+     <srcfile/>
+     <arg value="-o="/>
+     <targetfile/>
+     <fileset dir="${build}/examples/${start.dir}"
+              includes="**/*.o">
+     </fileset>
+     <mapper type="glob" from="*.o" to="*.llv"/>
+   </apply>
+ </target>
+
+  <target name="compile-execexamples" depends="init">
+    <!-- Compile the ExecExamples class -->
+    <echo message="Compile ExecExamples class"/> 
+    <javac srcdir="${build}/fp/util/ant/"
+           destdir="${build}/fp/util/ant/"
+           debug="${debug}"
+           deprecation="${deprecation}"
+           optimize="${optimize}">
+      <include name="ExecExamples.java"/>
+    </javac>
+  </target>
+
+  <target name="run-examples" depends="compile-execexamples, convert">
+    <echo message="Register and execute the ExecExamples class"/> 
+    <echo message="Compile .llv assembly file with float compiler to produce .llv.dot dotty file"/>
+    <taskdef name="execexamples"
+             classname="ExecExamples"
+	     classpath="${build}/fp/util/ant/"/>
+
+    <execexamples classpath="${java.class.path}:${build}:/packages/lib/apache-ant-1.6.2/lib/antlr.jar"
+              verbose="${test.verbosity}"
+              basepackagepath="fp"
+              onerror="${test.error.mode}"
+	      printresults="${test.print.results}"
+	      buildDir="${basedir}/build"
+	      cmdLine="${test.fpco.cmdline}">
+      
+      <!-- fileset for example programs -->
+      <fileset dir="${examples.dest}/${start.dir}">
+        <include name="**/*.llv"/>
+      </fileset>
+      
+    </execexamples>
+
+  </target>
+
+  <target name="examples-no-fail" depends="compile-execexamples, convert"
+	  description="compiles and runs the examples; won't exit on 1st failure">
+    <antcall target="run-examples">
+      <param name="test.error.mode" value="nofail"/>
+    </antcall>
+  </target>
+
+  <target name="usage"
+	  description="explains how to use the examples targets">
+    <echo message="ant init"/>
+    <echo message="ant bytecode (produce .o files)"/>
+    <echo message="ant convert (produce .llv files)"/>
+    <echo message="ant clean"/>
+    <echo message="ant run-examples"/>
+    <echo message="To limit the examples run, set the start.dir property."/>
+    <echo message=" (e.g. ant -Dstart.dir=photon run-examples)"/>
+    <echo message="To modify behavior on an error, set the test.error.mode property."/>
+    <echo message=" (e.g. ant -Dtest.error.mode=failimmediately run-examples)"/>
+    <echo message=" Accepted values for test.error.mode are"/>
+    <echo message=" - failimmediately: Ant fails immediately if an example fails"/>
+    <echo message=" - failatend:       Ant fails at end of all examples if any example fails"/>
+    <echo message=" - nofail:          Ant does not fail if an example fails"/>
+    <echo message=" Also, invoking the test-no-fail target will automatically"/>
+    <echo message=" set test.error.mode to nofail."/>
+    <echo message="To see more example output, set the test.verbosity property to true"/>
+    <echo message=" (e.g. ant -Dtest.verbosity=true run-examples)"/>
+    <echo message="To see specific test output, set the test.print.results property to:"/>
+    <echo message=" - failedtests:   Print names of failed tests (default)"/>
+    <echo message=" - passedtests:   Print names of passed tests"/>
+    <echo message=" - alltests:   Print names of failed and passed tests"/>
+    <echo message=" - notests:   Do not print names of failed or passed tests"/>
+    <echo message=" (e.g. ant -Dtest.print.results=failedtests run-tests)"/>
+  </target>
+ 
+ <target name="clean"
+    description="clean up examples" >
+   <echo message="Delete files in build/examples"/>
+   <delete dir="${build}/examples/${start.dir}">
+   </delete>
+ </target>
+
+</project>
+
+
+
+<!-- End of file -->

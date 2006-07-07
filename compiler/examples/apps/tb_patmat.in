@@ -1,0 +1,16 @@
+(fabric.in tb_patmat
+  (write .reset 1)
+  (wait .reset 10)
+
+  (write x 'm' 'n' 'o' 'p' 'g' 'k' 'r' 'i' 's' 'a' 'b' 'c' 'd')
+  (write pat 'k' 'r' 'i' 's')
+  (write y 5 5 5 5 5 5 5 5 5 5 5 5 5)
+
+  (write .start 1)
+  (wait .done 50)
+
+  (read y 0 0 0 0 0 1 0 0 0 0 0 0 0)
+  (read x 'm' 'n' 'o' 'p' 'g' 'k' 'r' 'i' 's' 'a' 'b' 'c' 'd')
+  (read pat 'k' 'r' 'i' 's')
+
+)

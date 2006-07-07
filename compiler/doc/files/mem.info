@@ -1,0 +1,42 @@
+(Config 
+	(target cray_xd1_v12)
+	(design NAME_HERE)
+	(registers
+		(register a
+			(width 32)
+			(depth 1)
+			(address 0x400000008)
+			(index 0)
+		)
+		(register b
+			(width 32)
+			(depth 1)
+			(address 0x400000010)
+			(index 1)
+		)
+		(register c
+			(width 32)
+			(depth 1)
+			(address 0x400000018)
+			(index 2)
+		)
+		(register d
+			(width 32)
+			(depth 1)
+			(address 0x400000020)
+			(index 3)
+		)
+		(register e
+			(width 32)
+			(depth 1)
+			(address 0x400000028)
+			(index 4)
+		)
+		(register start
+			(width 1)
+			(depth 1)
+			(address 0x400000030)
+			(index 5)
+		)
+	)
+)

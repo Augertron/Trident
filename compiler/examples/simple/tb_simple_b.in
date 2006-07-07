@@ -1,0 +1,30 @@
+(fabric.in tb_simple_a
+  # the leading "." means that the name is not explicit
+  # for start this is not exactly true, -- uh, where is 'done' mapped?
+  (write .reset 1)
+  (wait .reset 10)
+
+  (write a -3.0)
+  (write b -13.0)
+  (write c 37.0)
+  (write d -43.0)
+	
+  (write .start 1)
+
+  (wait .done 200)
+  # this could be an assertion too
+  # then we might need wait done all or something...
+  (read a 212.435898)
+  (read b -13.0)
+  (read c -268684.406250)
+  (read d -43.0)
+
+  (write b 100.0)
+  (write d -100.0)
+  (write .start 1)
+  (wait .done 200)
+
+  (read a 76370.007812)
+  # this might be wrong -- but it is not my fault, I think...
+  (read c 2.6868449e11)
+)

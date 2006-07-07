@@ -1,0 +1,35 @@
+(fabric.in tb_merge2
+  # This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
+
+
+  (write .reset 1)
+  (wait .reset 10)
+
+  (write a -1.000000)
+  (read a -1.000000)
+  (write i 5.000000)
+  (read i 5.000000)
+
+  (write .start 1)
+
+  (wait .done 60)
+
+  (read a -1.000000)
+  (read i 2.000000)
+
+  # next test
+  (write a 1.000000)
+  (read a 1.000000)
+  (write i 5.000000)
+  (read i 5.000000)
+
+  (write .start 1)
+
+  (wait .done 60)
+
+  (read a 1.000000)
+  (read i 1.000000)
+
+
+)
+

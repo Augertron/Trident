@@ -1,0 +1,11 @@
+Some notes on the Quixilica FP library (this list should be added to 
+whenever some unexpected behavior occurs with the QX library):
+
+-- When simulating a design using QX operators and the inputs to any 
+   operator are ready before 9 cycles into the simulation, the output 
+   of the QX operator won't occur until 9+<op latency> cycles into the 
+   simulation.  It almost appears that the operators don't start 
+   functioning until 9 cycles into the simulation.  For this reason, 
+   it might be safest to include a "wait for PERIOD*9;" statement at 
+   the beginning of the process for any TB of a FP design. (jdp 5/26/05)
+

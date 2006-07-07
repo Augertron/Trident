@@ -1,0 +1,20 @@
+digraph basic {
+        graph [size="6,60"];
+        subgraph "Float Compiler Organization" {
+                 "C/C++/Fortran/Java Program" -> "LLVM" ["label" = "program.c"];
+                 "LLVM" -> "llv" [ "label" = "program.o"];
+                 "llv" -> "parse" [ "label" = "program.llv"];
+                 "parse" -> "predication" ["label" = "parsed_program.llv.dot"];
+                 "predication" -> "hyperblocks pass";
+                 "hyperblocks pass" -> "common subexpression elimination pass" ["label" = "program.llv.dot"];
+                 "common subexpression elimination pass" -> "global dead code elimination pass";
+                 "global dead code elimination pass" -> "other passes";
+                 "other passes" -> "instruction selection";
+                 "instruction selection" -> "instruction scheduling";
+                 "instruction scheduling" -> "pipelining";
+                 "pipelining" -> "instruction scheduling";
+                 "pipelining" -> "vhdl generation";
+                 "vhdl generation" -> "vhdl program";
+        }
+}
+

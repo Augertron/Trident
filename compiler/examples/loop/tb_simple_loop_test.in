@@ -1,0 +1,23 @@
+(fabric.in tb_simple_loop_test
+  (write .reset 1)
+  (wait .reset 10)
+  
+  (write a 15)
+  (read a 15)
+  (write b 12)
+  (read b 12)
+  (write c 21)
+  (read c 21)
+  (write d 0)
+  (read d 0)
+
+  (write .start 1)
+
+  (wait .done 50)
+
+  (read a 225)
+  (read b 6)
+  (read c 231)
+  (read d 231)
+
+)

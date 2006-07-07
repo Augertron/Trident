@@ -1,0 +1,18 @@
+(fabric.in simple_g_tb
+  # the leading "." means that the name is not explicit
+  # for start this is not exactly true, -- uh, where is 'done' mapped?
+  (write .reset 1)
+  (wait .reset 100)
+
+  (write a 1.0)
+  (write b 2.0)
+  (write c 3.0)
+  (write d 4.0)
+
+  (write .start 1)
+
+  (wait .done 100)
+  # this could be an assertion too
+  # then we might need wait done all or something...
+  (read e 10.0) 
+)

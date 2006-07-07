@@ -1,0 +1,112 @@
+/*
+ *
+ @LICENSE@ 
+ */ 
+package fp.util.vhdl.generator;
+
+import java.util.*;
+
+
+public class Architecture extends Block {
+  
+  // block_declaritive_item
+  // Concurrent Statements
+
+  // Contains BlockItem objects (no duplicates)
+  private HashSet _itemSet = new HashSet();
+
+  // Contains names of identifiers (changed to lower case) from BlockItem objects (no duplicates)
+  private HashSet _nameSet = new HashSet();
+
+  private LinkedList _statements = new LinkedList();
+
+  // this part could be fixed.  It is the proper way to do it.
+  Identifier _identifier;
+  Name _entity;
+
+
+  private String _real_name;
+
+  public Architecture(String name) {
+    super(name+"_arch","architecture");
+    _real_name = name;
+    _itemSet = new HashSet();
+    _nameSet = new HashSet();
+    _statements = new LinkedList();
+  }
+
+  // Add an item to the HashMap if one isn't there already.
+  // Make strings all lower case to make search possible.
+  public void addItem(BlockItem i) { 
+    LinkedList itemNames = i.getNames();
+   
+    // check for any duplicate names first 
+    for (ListIterator iter = itemNames.listIterator(); iter.hasNext(); ) {
+      String itemName = (String)iter.next();
+      if (_nameSet.contains(itemName.toLowerCase())) {
+	System.out.println("CODEGEN:  Found a duplicate name:" + itemName);
+	return;
+      } 
+    }
+
+    // go ahead and add names
+    for (ListIterator iter = itemNames.listIterator(); iter.hasNext(); ) {
+      String itemName = (String)iter.next();
+      _nameSet.add(itemName.toLowerCase());
+    } 
+
+    // make sure BlockItem is added
+    _itemSet.add(i);
+  }
+
+  HashSet getItems() { return _itemSet; }
+
+  public void addStatement(Statement s) { _statements.add(s); }
+  LinkedList getStatements() { return _statements; }
+
+  protected void appendName(StringBuffer sbuf, String pre) {
+    sbuf.append(pre).append(getType()).append(" ");
+    sbuf.append(getName()).append(" of ").append(_real_name);
+    sbuf.append(" is\n");
+  }
+
+  protected void appendBody(StringBuffer s, String pre) {
+    // group them in this order: component, constant, type and signal
+
+    for (Iterator iter = _itemSet.iterator(); iter.hasNext(); ) {
+      BlockItem bItem = (BlockItem)iter.next();
+      if (bItem instanceof Component) {
+	((VHDLout)bItem).toVHDL(s, pre+TAB);
+      }
+    }
+    
+    for (Iterator iter = _itemSet.iterator(); iter.hasNext(); ) {
+      BlockItem bItem = (BlockItem)iter.next();
+      if (bItem instanceof ConstantItem) {
+	((VHDLout)bItem).toVHDL(s, pre+TAB);
+      }
+    }
+    
+    for (Iterator iter = _itemSet.iterator(); iter.hasNext(); ) {
+      BlockItem bItem = (BlockItem)iter.next();
+      if (bItem instanceof TypeDeclaration) {
+	((VHDLout)bItem).toVHDL(s, pre+TAB);
+      }
+    }
+    
+    for (Iterator iter = _itemSet.iterator(); iter.hasNext(); ) {
+      BlockItem bItem = (BlockItem)iter.next();
+      if (bItem instanceof Signal) {
+	((VHDLout)bItem).toVHDL(s, pre+TAB);
+      }
+    }
+    
+    s.append(pre).append("-- begin architecture for ").append(_real_name).append("\n");
+    s.append(pre).append("begin\n");
+    for (ListIterator iter = _statements.listIterator(); iter.hasNext(); ) {
+      ((VHDLout)iter.next()).toVHDL(s, pre+TAB);
+    }
+
+  }
+
+}

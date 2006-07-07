@@ -1,0 +1,40 @@
+/*
+ *
+ @LICENSE@
+ */
+
+
+package fp.flowgraph;
+
+public abstract class OperatorNames {
+
+public static String[] operatorName = new String[] {
+<? python
+
+oper = Operators('OperatorList.dat')
+oper_list = oper.getList()
+for operator in oper_list:
+   print '     "%(name)s",' % {'name' : operator.name}
+
+print '     "<UNKNOWN_OPERATOR>",'
+?>
+};
+
+  public static void addOpName(String name) {
+    String[] newoperatorName = new String[operatorName.length+1];
+    System.arraycopy(operatorName, 0, newoperatorName, 0, 
+                     operatorName.length);
+    newoperatorName[operatorName.length] = newoperatorName[operatorName.length-1];
+    newoperatorName[operatorName.length-1] = name;
+    operatorName = newoperatorName;
+  }
+  
+  public static String toString(Operator operator) {
+     try {
+       return operatorName[operator.opcode];
+     }
+     catch (ArrayIndexOutOfBoundsException e) {
+       return operatorName[operatorName.length-1]; 
+     }
+  }
+}

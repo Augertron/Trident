@@ -1,0 +1,25 @@
+(fabric.in tb_simple_a
+  # the leading "." means that the name is not explicit
+  # for start this is not exactly true, -- uh, where is 'done' mapped?
+  (write .reset 1)
+  (wait .reset 10)
+
+  (write a 2.0)
+  (read a 2.0)
+  (write b -2.0)
+  (read b -2.0)
+	
+  (write .start 1)
+
+  (wait .done 150)
+  # this could be an assertion too
+  # then we might need wait done all or something...
+  (read a 6.0)
+  (read b -2.0)
+
+  (write b 100.0)
+  (write .start 1)
+  (wait .done 150)
+  # this is close, but probably not float precision.
+  (read a 10619.273438) 
+)

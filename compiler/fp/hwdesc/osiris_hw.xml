@@ -1,0 +1,88 @@
+<!--
+ 
+ @LICENSE@
+-->
+
+
+<?xml version='1.0' standalone="no"?>
+
+<!DOCTYPE hardware SYSTEM "hw.dtd">
+
+<hardware>
+ <name>osiris</name>
+ <chip type="fpga">
+  <name>Xilinx_Virtex-II_6000</name>
+  <area_max_usage>.9</area_max_usage>
+  <area_min_usage>.2</area_min_usage>
+  <area>33792</area>
+
+  <resource type="blockram">
+   <count>144</count>
+   <size>18432</size>
+  </resource>
+ 
+  <resource type="multiplier">
+    <count>144</count>
+    <dimension1>18</dimension1>
+    <dimension2>18</dimension2>
+  </resource>
+
+ </chip>
+
+ <!-- ZBT SRAM --> 
+ <chip type="ram">
+  <count>10</count>
+  <name>zbt_sram</name>
+  <word_size>32</word_size>
+  <size>4288</size>  <!-- supposed to be 524288 -->
+
+  <port type="address_rw">
+   <count> 1 </count>
+   <clock>1</clock>
+  </port>
+
+  <port type="data_read">
+   <count>1</count>
+   <size>32</size>
+   <read_latency>5</read_latency>
+   <clock>1</clock>
+  </port>
+
+  <port type="data_write">
+   <count>1</count>
+   <size>32</size>
+   <write_latency>1</write_latency>
+   <clock>1</clock>
+  </port>
+
+ </chip>
+
+ <!-- SDRAM --> 
+ <chip type="ram">
+  <count>1</count>
+  <name>sdram</name>
+  <word_size>64</word_size>
+  <size>67108864</size>
+
+  <port type="address_rw">
+   <count> 1 </count>
+   <clock>1</clock>
+  </port>
+  
+  <port type="data_read">
+   <count>1</count>
+   <size>64</size>
+   <read_latency>5</read_latency>
+   <clock>1</clock>
+  </port>
+
+  <port type="data_write">
+   <count>1</count>
+   <size>64</size>
+   <write_latency>1</write_latency>
+   <clock>1</clock>
+  </port>
+
+ </chip>
+
+</hardware>

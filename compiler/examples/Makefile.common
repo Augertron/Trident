@@ -1,0 +1,50 @@
+LLVM_TOP := /n/projects/rcc/float/llvm
+
+LLVMGCCDIR := ${LLVM_TOP}/cfrontend/x86/llvm-gcc/
+
+LLVM_LIB_SEARCH_PATH := ${LLVMGCCDIR}/bytecode-libs
+
+LLVMGCC := ${LLVMGCCDIR}/bin/gcc
+LLVMGPP := ${LLVMGCCDIR}/bin/g++
+
+LLVM_LLV_TOP := ${LEVEL}/../../llvm
+
+LLV := ${LLVM_LLV_TOP}/tools/Release/llv
+
+
+ifndef VERBOSE
+VERB := @
+endif
+
+
+#
+# this could be somewhere else ...
+# 
+
+ifdef DIRS
+all install clean test::
+	${VERB} for dir in ${DIRS}; do \
+		if [ ! -f $$dir/Makefile ]; \
+		then \
+			echo "Missing Makefile in directory $$dir" && exit 1; \
+		fi; \
+		($(MAKE) -C $$dir $@) || exit 1; \
+	done
+endif
+
+
+#
+# This is really kludgy.
+#
+
+ifdef TESTS
+all install test::
+	${VERB} for t in ${TESTS}; do \
+		${LLVMGCC} -c $$t -o $$t.o ; \
+		${LLV} -f -march=v $$t.o -o=$$t.vhd ; \
+	done
+clean::
+	${VERB} for t in ${TESTS}; do \
+		rm -f $$t.o $$t.vhd ; \
+	done
+endif

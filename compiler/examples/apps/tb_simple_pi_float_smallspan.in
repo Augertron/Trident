@@ -1,0 +1,22 @@
+(fabric.in tb_simple_pi_float_smallspan
+  # This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
+
+  (run 24 us)
+
+
+  (write .reset 1)
+  (wait .reset 10)
+
+  (write pi 0.000000)
+  (wait)
+  (read pi 0.000000)
+
+  (write .start 1)
+
+  (wait .done 2400)
+
+  (read pi 3.228464)
+
+
+)
+

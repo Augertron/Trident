@@ -1,0 +1,61 @@
+(fabric.in tb_type_ushort
+  # This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
+
+
+  (write .reset 1)
+  (wait .reset 10)
+
+  (write a 65531)
+  (read a 65531)
+  (write b 8)
+  (read b 8)
+
+  (write .start 1)
+
+  (wait .done 80)
+
+  (read a 9)
+  (read b 11)
+
+  # next test
+  (write a 6)
+  (read a 6)
+  (write b 65522)
+  (read b 65522)
+
+  (write .start 1)
+
+  (wait .done 80)
+
+  (read a 65523)
+  (read b 65525)
+
+  # next test
+  (write a 22)
+  (read a 22)
+  (write b 21)
+  (read b 21)
+
+  (write .start 1)
+
+  (wait .done 80)
+
+  (read a 22)
+  (read b 24)
+
+  # next test
+  (write a 65533)
+  (read a 65533)
+  (write b 65531)
+  (read b 65531)
+
+  (write .start 1)
+
+  (wait .done 80)
+
+  (read a 65532)
+  (read b 65534)
+
+
+)
+

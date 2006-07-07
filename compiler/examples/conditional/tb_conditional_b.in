@@ -1,0 +1,158 @@
+(fabric.in tb_conditional_b
+  # This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
+
+  (run 4 us)
+
+
+  (write .reset 1)
+  (wait .reset 10)
+
+  (write a 10)
+  (read a 10)
+  (write b 11)
+  (read b 11)
+  (write c 12)
+  (read c 12)
+  (write d 13)
+  (read d 13)
+
+  (write .start 1)
+
+  (wait .done 40)
+
+  (read a 1)
+  (read b 7)
+
+  # next test
+  (write a 10)
+  (read a 10)
+  (write b 0)
+  (read b 0)
+  (write c 12)
+  (read c 12)
+  (write d 13)
+  (read d 13)
+
+  (write .start 1)
+
+  (wait .done 40)
+
+  (read a 1)
+  (read b 2)
+  (read c 6)
+
+  # next test
+  (write a 10)
+  (read a 10)
+  (write b 0)
+  (read b 0)
+  (write c 0)
+  (read c 0)
+  (write d 13)
+  (read d 13)
+
+  (write .start 1)
+
+  (wait .done 40)
+
+  (read a 1)
+  (read b 2)
+  (read c 3)
+  (read d 5)
+
+  # next test
+  (write a 10)
+  (read a 10)
+  (write b 0)
+  (read b 0)
+  (write c 0)
+  (read c 0)
+  (write d 0)
+  (read d 0)
+
+  (write .start 1)
+
+  (wait .done 40)
+
+  (read a 1)
+  (read b 2)
+  (read c 3)
+  (read d 4)
+
+  # next test
+  (write a 0)
+  (read a 0)
+  (write b 11)
+  (read b 11)
+  (write c 12)
+  (read c 12)
+  (write d 13)
+  (read d 13)
+
+  (write .start 1)
+
+  (wait .done 40)
+
+  (read a 8)
+  (read b 7)
+
+  # next test
+  (write a 0)
+  (read a 0)
+  (write b 0)
+  (read b 0)
+  (write c 12)
+  (read c 12)
+  (write d 13)
+  (read d 13)
+
+  (write .start 1)
+
+  (wait .done 40)
+
+  (read a 8)
+  (read b 2)
+  (read c 6)
+
+  # next test
+  (write a 0)
+  (read a 0)
+  (write b 0)
+  (read b 0)
+  (write c 0)
+  (read c 0)
+  (write d 13)
+  (read d 13)
+
+  (write .start 1)
+
+  (wait .done 40)
+
+  (read a 8)
+  (read b 2)
+  (read c 3)
+  (read d 5)
+
+  # next test
+  (write a 0)
+  (read a 0)
+  (write b 0)
+  (read b 0)
+  (write c 0)
+  (read c 0)
+  (write d 0)
+  (read d 0)
+
+  (write .start 1)
+
+  (wait .done 40)
+
+
+  (read a 8)
+  (read b 2)
+  (read c 3)
+  (read d 4)
+
+
+)
+

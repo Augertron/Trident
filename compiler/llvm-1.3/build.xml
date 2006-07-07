@@ -1,0 +1,76 @@
+<!--
+ 
+ @LICENSE@
+-->
+
+
+<project name="llv" default="compile" basedir="..">
+ <!-- =================================================================== -->
+ <!-- compile llv                                                         -->
+ <!-- =================================================================== -->
+
+ <property name="build" location="build"/>
+ <property name="src" location="llvm-1.3"/>
+ <property name="obj" location="${build}/llv-obj"/>
+ <property name="start.dir" value=""/>
+ <property environment="env"/>
+
+ <target name="check-autoconf" 
+   description="Sets autoconf.uptodate property if configure is newer than autoconf/configure.ac" >
+   <uptodate property="autoconf.uptodate" targetfile="${src}/configure">
+     <srcfiles dir="${src}/autoconf" includes="configure.ac"/>
+   </uptodate>
+ </target>
+
+ <target name="autoconf" 
+   depends="check-autoconf" unless="autoconf.uptodate">
+   <echo message="Run autoconf for llvm -- makes configure file"/>
+   <exec executable="autoconf" dir="${src}/autoconf" >
+     <arg value="-o"/>
+     <arg value="../configure" />
+   </exec>
+ </target>
+ 
+ <target name="check-configure" 
+   description="Sets configure.uptodate property if config.status is newer than configure" >
+   <uptodate property="configure.uptodate" targetfile="${obj}/config.status">
+     <srcfiles dir="${src}" includes="configure"/>
+   </uptodate>
+ </target>
+
+ <target name="configure" 
+   depends="autoconf,check-configure" unless="configure.uptodate">
+   <echo message="Run configure for llvm"/>
+   <mkdir dir="${obj}" />
+   <exec executable="${src}/configure" dir="${obj}">
+     <arg value="--with-llvmsrc=${env.LLVM_TOP}/src/llvm" />
+     <arg value="--with-llvmobj=${env.LLVM_TOP}/obj" />
+   </exec>
+ </target>
+ 
+ <target name="compile" depends="configure">
+   <echo message="Run make to compile llv"/>
+   <mkdir dir="${obj}" />
+   <exec executable="make" dir="${obj}" />
+ </target>
+
+ <target name="clean" description="clean up llv objects" >
+   <echo message="Delete files in build/llv-obj"/>
+   <delete dir="${obj}" />
+   <delete  file="${src}/configure" />
+ </target>
+
+  <target name="usage" 
+   description="explains how to use the llv targets">
+    <echo message="ant autoconf "/>
+    <echo message="ant configure "/>
+    <echo message="ant compile (does autoconf and configure, too)"/>
+    <echo message="ant clean"/>
+    <echo message="NOTE: configure takes the settings from the release designated by the LLVM_TOP environment variable"/> 
+  </target>
+
+</project>
+
+
+
+<!-- End of file -->

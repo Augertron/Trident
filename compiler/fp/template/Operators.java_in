@@ -1,0 +1,30 @@
+/*
+ *
+ @LICENSE@
+ */
+
+
+package fp.flowgraph;
+
+public interface Operators {
+
+<? python
+
+oper = Operators('OperatorList.dat')
+oper_list = oper.getList()
+
+print '// list of the opcodes'
+
+for operator in oper_list:
+   print '  public static final char',
+   print '%(symbol)s_opcode = (char)%(id)s;' % {'symbol' : operator.symbol, \
+					'id' : operator.index }
+print '\n// Named location into the Array'
+
+for operator in oper_list:
+   print '  public static final Operator',
+   print '%(symbol)s = Operator.OperatorArray[%(id)s];' % \
+            {'symbol' : operator.symbol, 'id' : operator.index }
+?>
+
+}

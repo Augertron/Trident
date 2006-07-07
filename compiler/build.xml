@@ -1,0 +1,249 @@
+<!--
+ 
+ @LICENSE@
+-->
+
+
+<project name="FP" default="compile" basedir=".">
+    <description>
+        Build file for the FPcompiler, llv, tests and examples.
+    </description>
+  <!-- set global properties for this build -->
+  <property name="build" location="build"/>
+  <property name="dist"  location="dist/trident"/>
+  <property name="fp.src" location="fp"/>
+  <property name="examples.src" location="examples"/>
+  <property name="llv.src" location="llvm-1.3"/>
+  <property name="fp.antfile" location="${fp.src}/build.xml"/>
+  <property name="llv.antfile" location="${llv.src}/build.xml"/>
+  <property name="examples.antfile" location="${examples.src}/build.xml"/>
+
+  <target name="init-fp"> 
+    <ant antfile="${fp.antfile}"
+	 target="init">
+    </ant>
+  </target>
+
+  <target name="init-tests"> 
+    <ant antfile="${fp.antfile}"
+	 target="init-tests">
+    </ant>
+  </target>
+
+  <target name="init-examples"> 
+    <ant antfile="${examples.antfile}"
+	 target="init">
+    </ant>
+  </target>
+
+  <target name="init" depends="init-fp,init-tests,init-examples">
+    <echo message="Init fp, tests and examples"/>
+  </target>
+
+  <target name="compile-fp"> 
+    <ant antfile="${fp.antfile}"
+	 target="compile">
+    </ant>
+  </target>
+
+  <target name="compile-llv"> 
+    <ant antfile="${llv.antfile}"
+	 target="compile">
+    </ant>
+  </target>
+
+  <target name="compile-tests"> 
+    <ant antfile="${fp.antfile}"
+	 target="compile-tests">
+    </ant>
+  </target>
+
+  <target name="compile-examples" depends="compile-llv"> 
+    <ant antfile="${examples.antfile}"
+	 target="convert">
+    </ant>
+  </target>
+
+  <target name="compile" depends="compile-fp,compile-llv,compile-tests,compile-examples">
+    <echo message="Compile fp, tests and examples"/>
+  </target>
+
+  <target name="run-tests" depends="compile-fp, compile-llv"> 
+    <ant antfile="${fp.antfile}"
+	 target="run-tests">
+    </ant>
+  </target>
+
+  <target name="run-examples" depends="compile-fp,compile-llv"> 
+    <ant antfile="${examples.antfile}"
+	 target="run-examples">
+    </ant>
+  </target>
+
+  <target name="test" depends="run-tests,run-examples">
+    <echo message="Run tests and examples"/>
+  </target>
+
+  <target name="test-usage" >
+    <ant antfile="${fp.antfile}"
+	 target="test-usage">
+    </ant>
+  </target>
+
+  <target name="examples-usage" >
+    <ant antfile="${examples.antfile}"
+	 target="usage">
+    </ant>
+  </target>
+
+  <target name="llv-usage" >
+    <ant antfile="${llv.antfile}"
+	 target="usage">
+    </ant>
+  </target>
+
+
+  <target name="test-hw" depends="compile" >
+   <exec executable="python" failonerror="true" dir="${basedir}">
+      <arg value="${basedir}/test/hw/apptest/apptest.py"/>
+      <arg value="-s"/>
+      <arg value="-x"/>
+    </exec>
+  </target>
+
+  <target name="test-result" depends="test-hw" >
+  <junitreport todir="build/reports">
+    <fileset dir="build/reports">
+      <include name="TEST-*.xml"/>
+    </fileset>
+    <report format="frames" todir="build/reports/html"/>
+  </junitreport>
+  </target>
+
+  <target name="dist" depends="compile"
+        description="generate the distribution" >
+    <ant antfile="${fp.antfile}"
+	 target="dist">
+    </ant>
+
+    <!-- Create the distribution directory -->
+    <filter filtersfile="fp/util/FiltersFile.ant"/>
+
+    <mkdir dir="${dist}/vhdl"/>
+
+    <mkdir dir="${dist}/bin"/>   
+    <copy file="tcc" todir="${dist}/bin" filtering="true" />
+    <copy file="${build}/llv-obj/Debug/bin/llv" todir="${dist}/bin"/>
+
+    <mkdir dir="${dist}/vhdl/trident"/>
+    <copy todir="${dist}/vhdl/trident" filtering="true" >
+      <fileset dir="lib/trident"/>
+    </copy>
+
+    <mkdir dir="${dist}/llv-src/"/>
+    <copy todir="${dist}/llv-src/" filtering="true" >
+      <fileset dir="llvm-1.3" excludes="**/*.xml"/>
+    </copy>
+
+    <mkdir dir="${dist}/examples"/>
+    <copy todir="${dist}/examples" filtering="true" >
+      <fileset dir="examples" 
+         excludes="**/*.xml, **/*.in, **/Make*, **/tb_*, **/call/*, **/apps/*, **/photon/*"  />
+ 
+    </copy>
+
+    <mkdir dir="${dist}/lib/conf"/>
+    <copy todir="${dist}/lib/conf" filtering="true" >
+       <fileset dir="lib/conf"/>
+    </copy>
+
+    <chmod file="${dist}/bin/llv" perm="ugo+rx"/>
+    <chmod file="${dist}/bin/tcc" perm="ugo+rx"/>
+    <chmod file="${dist}/llv-src/mkconf.sh" perm="ugo+rx"/>
+
+    <tar longfile="gnu" compression="gzip"
+     tarfile="${build}/dist.tgz" >
+    <tarfileset dir="${dist}/.." mode="755">
+      <include name="trident/bin/llv"/>
+      <include name="trident/bin/tcc"/>
+      <include name="trident/llv-src/mkconf.sh"/>
+    </tarfileset>
+    <tarfileset dir="${dist}/..">
+      <include name="**"/>
+      <exclude name="trident/bin/llv"/>
+      <exclude name="trident/bin/tcc"/>
+      <exclude name="trident/llv-src/mkconf.sh"/>
+      <exclude name="trident/llv-src/configure"/>
+      <exclude name="**/autom4te.cache/*"/>
+    </tarfileset>
+   </tar>
+
+
+  </target>  
+
+
+  <target name="usage">
+    <echo message="INIT USAGE:" /> 
+    <echo message="ant init (does init-fp, init-tests, init-examples)" /> 
+    <echo message="ant init-fp" /> 
+    <echo message="ant init-tests" /> 
+    <echo message="ant init-examples" /> 
+    <echo message="" /> 
+    <echo message="COMPILE USAGE" /> 
+    <echo message="ant compile (does compile-fp, compile-tests, compile-llv, compile-examples)" /> 
+    <echo message="ant compile-fp" /> 
+    <echo message="ant compile-tests" /> 
+    <echo message="ant compile-llv" /> 
+    <echo message="ant compile-examples" /> 
+    <echo message="" /> 
+    <echo message="TEST USAGE" /> 
+    <echo message="ant test (does run-tests and run-examples)" /> 
+    <echo message="ant run-tests" /> 
+    <echo message="ant run-examples" />
+    <echo message="" /> 
+    <echo message="CLEAN USAGE" /> 
+    <echo message="ant clean (CAREFUL: does clean-fp, clean-tests, clean-llv and clean-examples)" /> 
+    <echo message="ant clean-fp" /> 
+    <echo message="ant clean-llv" /> 
+    <echo message="ant clean-tests" /> 
+    <echo message="ant clean-examples" /> 
+    <echo message="" /> 
+    <echo message="USAGE USAGE" /> 
+    <echo message="ant usage" /> 
+    <echo message="ant test-usage" /> 
+    <echo message="ant examples-usage" /> 
+    <echo message="ant llv-usage" /> 
+  </target>
+
+  <target name="clean-fp"> 
+    <ant antfile="${fp.antfile}"
+	 target="clean">
+    </ant>
+  </target>
+
+  <target name="clean-llv"> 
+    <ant antfile="${llv.antfile}"
+	 target="clean">
+    </ant>
+  </target>
+
+  <target name="clean-tests"> 
+    <ant antfile="${fp.antfile}"
+	 target="clean-tests">
+    </ant>
+  </target>
+
+  <target name="clean-examples"> 
+    <ant antfile="${examples.antfile}"
+	 target="clean">
+    </ant>
+  </target>
+
+  <target name="clean" depends="clean-fp,clean-examples,clean-llv">
+    <echo message="Clean fp, llv, tests and examples"/>
+  </target>
+
+</project>
+
+
+<!-- End of file -->

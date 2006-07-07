@@ -1,0 +1,230 @@
+\section{Trident Compiler Synthesis}
+
+
+The synthesis section of the Trident compiler creates ``abstract''
+circuits based on a given scheduled control flow graph (CFG).
+
+After abstract circuits are built, code is generated in the underlying
+technology (so far VHDL) from the information stored in the abstract
+circuits.  More specifically, when the abstract components are built,
+a request is made to the Circuit class to generate HDL code.
+
+\subsection{Main Classes}
+
+\begin{description}
+\item[GenericCircuitGenerator] base class, includes commonly used functions
+\item[DesignCircuitGenerator] top-level for a Trident design
+\item[DatapathCircuitGenerator] implements the datapath 
+\item[RegfileGenerator] implements the register file
+\item[TopLevelCircuitGenerator] creates top-level connections with the XD1
+\item[InterfaceGenerator] base class of interface classes
+\item[MemoryInterfaceGenerator] adds logic for connecting to memories
+\item[RegisterInterfaceGenerator] adds logic for connecting to the host
+\item[AddressDecodeGenerator] creates address decoders and memory selectors
+\end{description}
+
+\subsection{Description}
+
+\subsubsection{Block and Datapath}
+
+A block circuit is created for each hyperblock found in the CFG.  Each
+block circuit contains a datapath, a register file, a state machine
+and corresponding control logic. For each hyperblock, every
+instruction is analyzed and logic is created to implement each
+instruction. For example, if a store instruction is found, a wire
+connects the data to a guarding mux which is connected to the register
+file.
+
+\subsubsection{Register File}
+The register file holds temporary values that are needed between block
+circuits. When any primal is loaded or stored, the register file will
+be accessed.  It simply contains a register for every primal that is
+used in the CFG.  The connections to the register file are created in
+the DesignCircuitGenerator.
+
+\subsubsection{Block Control}
+Block control is implemented in the DesignCircuitGenerator.  The
+control depends on the state machine and predicates associated with
+each block.
+
+\subsubsection{State Machines}
+The StateMachine base class provides basic methods for generating a
+state machine.  The GenericStateMachine class generates state machines
+for normally scheduled blocks, and the ModuloStateMachine class
+generates state machines for modulo scheduled blocks.  The main
+difference between these state machines is that the modulo state
+machine will not try to exit early, while the generic state machine
+could possibly.  Both types of state machines are ``one-hot'' state
+machines (meaning they have one register for each individual state).
+Both state machines use the last state as the start state.
+
+Note: In order for the state machines to work properly, the reset
+signal at the top-level needs to go high for at least one cycle.
+
+\subsubsection{Host/Design Register Interface}
+Logic is needed in order to handle the host's initialization of the
+registers in the Trident design.  The RegisterInterfaceGenerator class
+implements this functionality.  The host sends addresses and data on
+the RapidArray transport which are received at the top-level of the
+Trident design.  The lowest bits of the address bus denote a
+register's address.  There's one address decoder for each register
+that's been declared as externally visible.  The inputs of each
+address decoder are connected to the lowest bits of the address bus.
+During a host register read, the register read enable signal (the
+address decoder output delayed 1 cycle) is used to control a guarding
+mux for the data coming from the register in the register file.  Each
+externally visible register has this read enable and guarding logic at
+the top level.  The output of each guarding mux is then extended to
+DATA\_BUS\_WIDTH bits wide.  Those outputs are OR'ed together and put
+on the o\_reg bus to be sent back to the host.
+
+When a host writes a register to the register file, the address is
+decoded as described above.  In order to get the host write enable for
+a register, the done signal, status' register write enable, and
+address decoder are AND'ed together.  The data coming from the host is
+sliced down to its declared size.  A mux controlled by the
+corresponding write enable guards the data heading towards the
+register file.  The mux output is OR'ed with wires created from stores
+in the block circuits.  The OR output goes straight to the
+corresponding register in the register file.
+
+The addresses of registers can be found printed out after running
+Trident.  When making a ``fabric.in'' file during simulation, these
+addresses must be added to the XD1's register space offset (0x4000000)
+in order to have the address show up on the correct bus.  Also, when
+simulating, the signal to start the hardware design is treated like a
+host register write.  The start signal's address is always the largest
+address printed during Trident's output.
+
+\subsubsection{Memory Interface}
+The MemoryInterfaceGenerator class implements the logic connecting the
+XD1's QDR2 SRAM memories with the memory uses in the hardware design.
+Also, it provides host access to the specific SRAM banks.  The QDR2
+RAM is mapped by RT Client logic into the second 8 Mbytes of QDR RAM
+space.  Since each SRAM has the same amount of memory, each SRAM bank
+holds 2MBytes.  Therefore, the SRAMs are divided into the following
+address spaces (with 64-bit addressable elements): mem0 (0x800000 to
+0x9FFFFF), mem1 (0xA00000 to 0xBFFFFF), mem2 (0xC00000 to 0xDFFFFF),
+and mem3 (0xE00000 to 0xFFFFFF).  The memory select bits appear on the
+18th and 19th bits of the address bus.  Memory selectors (modified
+address decoders), which are connected to the two memory select bits,
+decide which memory is being accessed.
+
+A host memory write sends an address and data down their respective RT
+Client buses.  Then, the memory selectors decide which memory is being
+accessed.  Each memory's write enable is made from the AND of the
+memory select's output, the done signal, and the status bus' memory
+enable.  Along with supplying each memory i's w\_n\_i signal, a
+memory's write enable is used as control to two muxes. The first mux
+guards data inputs to the data write bus.  The second mux guards
+address inputs to the address write bus.  Both buses of each memory
+have an OR gate in front in order to connect the Trident hardware
+design memory writes.
+
+A host memory read sends an address down the RT Client bus.  Again,
+the memory number is decoded, and therefore a memory has been
+selected.  That signal, negated, is used as memory i's r\_n\_i signal.
+While the r\_n\_i is active low, the address bus holds the address
+specified by the host read request.  Eight cycles after the address is
+placed on the SRAM address bus, the data is returned on the SRAM
+bank's data bus.  Here, the read enable signal is made by AND'ing the
+status bus's memory read signal with the corresponding memory select
+output.  Since those signals occur eight cycles previously, a chain of
+registers is used to delay the read enable signal eight cycles.  The
+output of the chain of registers is used as control for a mux guarding
+the incoming data.  The mux output is OR'ed with all other related
+guard muxes.  Finally, the data coming from the OR gate is sliced from
+72 bits down to 64 bits -- due to the difference between QDR2 SRAM and
+RT Client data widths.  The sliced data is put onto the RT Client bus.
+
+When the design requests a memory read, no memory selectors are needed
+because each array and memory access has been designated a memory
+during the AnalyzeHardware pass.  First, the address is calculated
+inside the datapath.  During the scheduler determined cycle, the
+address flows through a mux and gets sliced from 32-bits down to
+20-bits.  Next, an OR gate connects the 20-bit address and other
+addresses from other blocks.  Then, another OR gate connects the
+previous OR gate's output with the host's address.  The output of this
+OR gate goes straight to the memory's address read port.  The read
+enable goes through a similar path.  It gets OR'ed with other blocks'
+read enables and also with the host's read enable. Eight cycles after
+the address and read enable signals are set, data comes back on the
+memory's data read bus.  From there it gets sliced from 72-bits down
+to the data size of the operand in the datapath.  A wire connects the
+slice operator with the datapath.
+
+Mapping of the top-level Trident design to the XD1 architecture occurs
+in the user\_app.vhd file.  One change to this file is that the status
+bus has one more bit. The status bus contains the following
+information (in order from lowest to highest bits): register write
+enable, memory write enable, memory read enable, and BRAM write
+enable.  Other signal mapping is defined by the following:
+
+\begin{verbatim}
+      reset_n => reset_n,
+      clk       => user_clk,
+      i_data  => wide_req,
+      i_addr  => s_rt_req.addr,
+      i_status => top_status,
+      o_reg => top_reg,
+      o_mem => top_mem,
+      o_bmem => open,
+      memi_dr => dr_(i+1),
+      memi_dw => dw_(i+1),
+      memi_ar => ar_(i+1),
+      memi_aw => aw_(i+1),
+      memi_re_n => r_n_(i+1),
+      memi_we_n => w_n_(i+1)
+\end{verbatim}
+
+For examples on signal mapping from the Trident design to the XD1
+architecture, see the user\_app.vhd file in the XD1 test directory.
+
+\subsection{Known Bugs/Deficiencies}
+\begin{itemize}
+\item State machines can exit early for modulo scheduled blocks (?)
+
+\item Something should be done about the parity bits in the data bus
+  connections.  I've made the width of the data write buses 72-bits
+  (the width of the XD1 memory data buses), while this could be fixed
+  outside of the design by either adding parity logic or just
+  extending the width of the data.  This will reduce the number of
+  bits being OR'ed together inside the top-level and could produce
+  faster designs.
+
+\item array designs seem to be very slow (~130MHz).  We may want to
+  look at this.
+\item It would be more convenient to always have the same memory ports
+  on the top-level.  Currently, only the memory ports that are used in
+  the design are added.  This makes it difficult because user\_app.vhd
+  has to be modified for all designs that use different memory ports.
+  Inside the design, the memory ports should just hook up to the host
+  logic.
+
+\item Arrays get assigned to memories in a ``non-reproducible''
+  manner.  This causes problems when making a fabric.in file.  Always
+  remember to check the output of the synthesizer for where the arrays
+  have been mapped because often the arrays change to different
+  memories.  When this happens, the fabric.in addresses (the portion
+  of the addr that selects the memory) have to be changed.  I think
+  this could be fixed in the hardware analysis code, but I'm not sure.
+  Another possibility is where the synthesizer or AllocateArrays pass
+  sets the name of the memory.
+
+\item ConstantMath has a problem which I tried to fix, but didn't have
+  the time to thoroughly test.  The problem involved the replacement
+  of operands where its defining instruction was reduced.  A HashMap
+  was used with the instruction as key and operand as value.  When an
+  instruction has more than one operand to replace, there should be
+  more than one entry into the HashMap.  By using the instruction as
+  key, the entry gets over-written when the second entry is added.
+  Therefore, only one operand gets replaced, which leads to incorrect
+  CFGs.  I think I've fixed this, but haven't thoroughly tested.
+  Also, when ConstantMath tried to reduce Binary instructions, it
+  would only look if both operand uses were constant.  This left out
+  many potential optimizations that could occur when only one operand
+  is a constant. In fact, most of the instructions created in
+  ConvertGepInsts were of this type.  I've added code to optimize this
+  type of instruction, but its commented-out due to lack of testing.
+
+\end{itemize}
