@@ -28,21 +28,14 @@ public class ConvInterBlockNonPrimToPrimal extends Pass implements GraphPass {
   /** ignore if there are interiteration loop dependencies and schedule using 
    *  force directed anyway?
    */
-  private boolean _ignoreInterItDataDep;
+  //private boolean _ignoreInterItDataDep;
   private HyperBlockList _hyperBlocks;
   
-  public ConvInterBlockNonPrimToPrimal(PassManager pm) {
-    this(pm, GlobalOptions.noModSched);
-  }
   public ConvInterBlockNonPrimToPrimal(PassManager pm, HyperBlockList hyperBlocks) {
-    this(pm, GlobalOptions.noModSched);
+    super(pm);
     _hyperBlocks = hyperBlocks;
   }
-  public ConvInterBlockNonPrimToPrimal(PassManager pm, boolean ignoreDataDep) {
-    super(pm);
-    _ignoreInterItDataDep = ignoreDataDep;
-  }
-  
+
   public boolean optimize(BlockGraph graph) {
      PrimalPromotion promotPrims = new PrimalPromotion(graph);
      

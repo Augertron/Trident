@@ -35,7 +35,8 @@ class ParseHardwareVisitor extends StackVisitor {
     "write_latency",
     "memAccessInst",
     "latency",
-    "sliceCnt"
+    "sliceCnt",
+    "addressable_size",
   };
 
   static final int HARDWARE = 0;
@@ -58,6 +59,7 @@ class ParseHardwareVisitor extends StackVisitor {
   static final int MEMACCESSINST = 17;
   static final int LATENCY = 18;
   static final int SLICECNT = 19;
+  static final int ADDRESSABLE_SIZE = 20;
 
   /*
     // these are unnecessary due to Number ! 
@@ -105,6 +107,8 @@ class ParseHardwareVisitor extends StackVisitor {
         stack.push(parseMemAccessInst(that)); }
       else if (tokens[LATENCY].equals(s)) {  parseLatency(that); }
       else if (tokens[SLICECNT].equals(s)) {  parseSliceCnt(that); }
+      else if (tokens[ADDRESSABLE_SIZE].equals(s)) {  
+	parseAddressableSize(that); }
       else { 
 	System.err.println("Unknown Token "+s);
 	System.exit(-1);
@@ -154,20 +158,13 @@ class ParseHardwareVisitor extends StackVisitor {
     _chip.setTypeCode();
     if((_chip.typeCode==Chip.RAM_TYPE)||
        (_chip.typeCode==Chip.ROM_TYPE)) {
-      //Memory _mChip = new Memory();
-      //_mChip.type = v.elementAt(1).toString();
-      //_mChip.setTypeCode();
-      //((Hardware)stack.peek()).chip.add(_mChip);
-      //return _mChip;
       MemoryBlock _mChip = new MemoryBlock();
+
       _mChip.type = v.elementAt(1).toString();
       _mChip.setTypeCode();
       ((Hardware)stack.peek()).chip.add(_mChip);
       return _mChip;
-      //((Hardware)stack.peek()).chip.add(_chip);
-      //return _chip;
-    }
-    else {
+    } else {
       ((Hardware)stack.peek()).chip.add(_chip);
       return _chip;
     }
@@ -296,6 +293,13 @@ class ParseHardwareVisitor extends StackVisitor {
     MemAccessInst _memAccessInst = (MemAccessInst)stack.peek();
     _memAccessInst.sliceCnt = ((Number)v.elementAt(1)).intValue();
   }
+
+
+  void parseAddressableSize(Vector v) {
+     Chip _chip = (Chip)stack.peek();
+    _chip.addressable_size = ((Number)v.elementAt(1)).intValue();
+  }
+
 
   Hardware getHardware() { return _hardware; }
 

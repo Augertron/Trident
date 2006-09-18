@@ -1,0 +1,27 @@
+(fabric.in tb_verysimple
+  (write .reset 1)
+  (wait .reset 10)
+  
+  (write a 1)
+  (wait)
+  (read a 1)
+  (write b 10)
+  (wait)
+  (read b 10)
+  (write c 2)
+  (wait)
+  (read c 2)
+  (write d 1)
+  (wait)
+  (read d 1)
+
+  (write .start 1)
+
+  (wait .done 200)
+
+  (read a 1024)
+  (read b 10)
+  (read c 2)
+  (read d 1)
+
+)

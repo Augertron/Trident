@@ -54,7 +54,7 @@ public class CalculateII
     if(isBlockInLoop(node_BlockNode)) {
        
       //for debugging:
-      int iImem = chipInfo.calcLoad(node_BlockNode.getInstructions());
+      int iImem = chipInfo.calcLoad(node_BlockNode, node_BlockNode.getInstructions());
       System.out.println("iI due to memory requirements: " + iImem);
        
       //end memory analysis

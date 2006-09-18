@@ -1,30 +1,119 @@
-(fabric.in tb_simple_a
-  # the leading "." means that the name is not explicit
-  # for start this is not exactly true, -- uh, where is 'done' mapped?
+(fabric.in tb_simple_b
+  ; This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
+
+  (run 32 us)
+
+
   (write .reset 1)
   (wait .reset 10)
 
-  (write a -3.0)
-  (write b -13.0)
-  (write c 37.0)
-  (write d -43.0)
-	
+  (write a 0xc0a00000)
+  (wait)
+  (read a 0xc0a00000)
+  (write b 0x41000000)
+  (wait)
+  (read b 0x41000000)
+  (write c 0x41c80000)
+  (wait)
+  (read c 0x41c80000)
+  (write d 0x41800000)
+  (wait)
+  (read d 0x41800000)
+
   (write .start 1)
 
-  (wait .done 200)
-  # this could be an assertion too
-  # then we might need wait done all or something...
-  (read a 212.435898)
-  (read b -13.0)
-  (read c -268684.406250)
-  (read d -43.0)
+  (wait .done 800)
 
-  (write b 100.0)
-  (write d -100.0)
+  (read a 0x424ce666)
+  (wait)
+  (read b 0x41000000)
+  (wait)
+  (read c 0x46c8752d)
+  (wait)
+  (read d 0x41800000)
+  (wait)
+
+  # next test
+  (write a 0x40c00000)
+  (wait)
+  (read a 0x40c00000)
+  (write b 0xc1600000)
+  (wait)
+  (read b 0xc1600000)
+  (write c 0x41900000)
+  (wait)
+  (read c 0x41900000)
+  (write d 0x40400000)
+  (wait)
+  (read d 0x40400000)
+
   (write .start 1)
-  (wait .done 200)
 
-  (read a 76370.007812)
-  # this might be wrong -- but it is not my fault, I think...
-  (read c 2.6868449e11)
+  (wait .done 800)
+
+  (read a 0x4316c30d)
+  (wait)
+  (read b 0xc1600000)
+  (wait)
+  (read c 0x46278d87)
+  (wait)
+  (read d 0x40400000)
+  (wait)
+
+  # next test
+  (write a 0x41b00000)
+  (wait)
+  (read a 0x41b00000)
+  (write b 0x41a80000)
+  (wait)
+  (read b 0x41a80000)
+  (write c 0xc1100000)
+  (wait)
+  (read c 0xc1100000)
+  (write d 0xc0e00000)
+  (wait)
+  (read d 0xc0e00000)
+
+  (write .start 1)
+
+  (wait .done 800)
+
+  (read a 0x44ad1fee)
+  (wait)
+  (read b 0x41a80000)
+  (wait)
+  (read c 0x46e460cb)
+  (wait)
+  (read d 0xc0e00000)
+  (wait)
+
+  # next test
+  (write a 0xbf800000)
+  (wait)
+  (read a 0xbf800000)
+  (write b 0xc0a00000)
+  (wait)
+  (read b 0xc0a00000)
+  (write c 0xc1d00000)
+  (wait)
+  (read c 0xc1d00000)
+  (write d 0xc1880000)
+  (wait)
+  (read d 0xc1880000)
+
+  (write .start 1)
+
+  (wait .done 800)
+
+  (read a 0x41ce6666)
+  (wait)
+  (read b 0xc0a00000)
+  (wait)
+  (read c 0x462cfdf1)
+  (wait)
+  (read d 0xc1880000)
+  (wait)
+
+
 )
+

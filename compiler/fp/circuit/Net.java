@@ -73,7 +73,8 @@ abstract public class Net extends Nameable implements Bool {
     if (sources.size() == 1) { 
       // Just get the only PortTag's width.
       sourceWidth = ((PortTag)((HashSet)sources).toArray()[0]).getWidth();
-System.out.println("source: " + (PortTag)((HashSet) sources).toArray()[0]);
+      
+      //System.out.println("source: " + (PortTag)((HashSet) sources).toArray()[0]);
     } else if (sources.size() == 0) {
       // CHANGE: this is a hack and should eventually be changed!
       if(sinks.size() > 0) {
@@ -99,7 +100,7 @@ System.out.println("source: " + (PortTag)((HashSet) sources).toArray()[0]);
     // Check that the source and sinks have the same width.
     for(Iterator iter = sinks.iterator(); iter.hasNext(); ) {
       PortTag iSink = (PortTag)iter.next();
-System.out.println("sink: " + iSink);
+      //System.out.println("sink: " + iSink);
       int iSinkWidth = iSink.getWidth();
       if ((sourceWidth != iSinkWidth) && (sourceWidth != -1)) {
 	System.out.print("WARNING: resolveWidth() -- ");

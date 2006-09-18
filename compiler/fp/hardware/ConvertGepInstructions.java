@@ -82,6 +82,10 @@ public class ConvertGepInstructions {
     int test = atomicWidth/wordSize;
     double logBase2 = (test >= 1) ? (Math.log(test)/Math.log(2)) : 0.0;
     Operand logOp = new IntConstantOperand((int)logBase2);
+
+    System.out.println(" indexOp "+indexOp+" wordSize "+wordSize+" atomicWidth "+atomicWidth+" test "+test+" logOp "+logOp);
+
+
     Operand shlOp = Operand.nextBlock("gep");
     Instruction shiftInst = Shift.create(Operators.SHL, Type.Int, 
 					 shlOp, indexOp, logOp, 
@@ -95,6 +99,8 @@ public class ConvertGepInstructions {
 					new IntConstantOperand(arrayAddr), 
 					inst.getPredicate());
     _instsToAdd.add(addInst);
+
+    System.out.println(" arrayAddr "+arrayAddr+" op "+addrOp);
     
     // Remove the GEP instruction from this block node at a later time...
     _gepsToRemove.add(inst);

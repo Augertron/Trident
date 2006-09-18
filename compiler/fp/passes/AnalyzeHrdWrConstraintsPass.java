@@ -27,34 +27,16 @@ public class AnalyzeHrdWrConstraintsPass extends Pass implements GraphPass {
   private OperationSelection _opSel;
   public static AnalyzeHardareConstraints iICalc;
    
-  /** "@param pm
-   */
   public AnalyzeHrdWrConstraintsPass(PassManager pm) {
-    this(pm, null, GlobalOptions.scheduleSelect, GlobalOptions.noModSched, 
-         GlobalOptions.conserveArea);
+    this(pm, null); 
   }
+
   public AnalyzeHrdWrConstraintsPass(PassManager pm, OperationSelection opSel) {
-    this(pm, opSel, GlobalOptions.scheduleSelect, GlobalOptions.noModSched, 
-         GlobalOptions.conserveArea);
-  }
-  public AnalyzeHrdWrConstraintsPass(PassManager pm, OperationSelection opSel, 
-                                     int scheduleSelect) {
-    this(pm, opSel, scheduleSelect, GlobalOptions.noModSched, 
-         GlobalOptions.conserveArea);
-  }
-  public AnalyzeHrdWrConstraintsPass(PassManager pm, OperationSelection opSel, 
-                                     int scheduleSelect, 
-                                     boolean ignoreDataDep) {
-    this(pm, opSel, scheduleSelect, ignoreDataDep, GlobalOptions.conserveArea);
-  }
-  public AnalyzeHrdWrConstraintsPass(PassManager pm, OperationSelection opSel, 
-                                     int scheduleSelect, 
-                                     boolean ignoreDataDep, 
-				     boolean conserveArea) {
     super(pm);
-    _scheduleSelect = scheduleSelect;
-    _ignoreDataDep = ignoreDataDep;
-    _conserveArea = conserveArea;
+
+    _scheduleSelect = GlobalOptions.scheduleSelect;
+    _ignoreDataDep = !GlobalOptions.modSched;
+    _conserveArea = GlobalOptions.conserveArea;
     iICalc = new AnalyzeHardareConstraints();
     _opSel = opSel;
   }

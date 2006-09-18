@@ -61,16 +61,16 @@ public interface Memory {
   public void loadIndexes(BlockGraph designBGraph);
   public int trueCost(BlockNode bNode, ArrayToArrayInfoMap arrToArrInf);
   public int cost(BlockNode bNode, ArrayToArrayInfoMap arrToArrInf);
-  public int addLoadTest(int time, Operand array);
-  public int addLoadTestCnt(int time, Operand array);
-  public int addLoad(int time, Operand array);
-  public int addLoadCnt(int time, Operand array);
-  public int subLoad(int time, Operand array);
-  public int subLoadCnt(int time, Operand array);
-  public int addStoreTest(int time, Operand array);
-  public int addStoreTestCnt(int time, Operand array);
-  public int addStore(int time, Operand array);
-  public int addStoreCnt(int time, Operand array);
-  public int subStore(int time, Operand array);
-  public int subStoreCnt(int time, Operand array);
+  public int addLoadTest(BlockNode bNode, int time, Operand array);
+  public int addLoadTestCnt(BlockNode bNode, int time, Operand array);
+  public int addLoad(BlockNode bNode, int time, Operand array);
+  public int addLoadCnt(BlockNode bNode, int time, Operand array);
+  public int subLoad(BlockNode bNode, int time, Operand array);
+  public int subLoadCnt(BlockNode bNode, int time, Operand array);
+  public int addStoreTest(BlockNode bNode, int time, Operand array);
+  public int addStoreTestCnt(BlockNode bNode, int time, Operand array);
+  public int addStore(BlockNode bNode, int time, Operand array);
+  public int addStoreCnt(BlockNode bNode, int time, Operand array);
+  public int subStore(BlockNode bNode, int time, Operand array);
+  public int subStoreCnt(BlockNode bNode, int time, Operand array);
 }

@@ -27,7 +27,7 @@ public class ArrayToArrayInfoMap extends HashMap {
     public int wordSize;
     public long arraySize; //ok, this is no longer in bits
     public boolean someStores;
-    public int tryCnt = 1;
+    public int tryCnt = 0;
     private HashMap _storeTimes;
     private HashMap _loadTimes;
 
@@ -138,6 +138,12 @@ public class ArrayToArrayInfoMap extends HashMap {
   public ArrayInfo get(Operand array) {
     return (ArrayInfo)super.get(array);
   }
+  public ArrayInfo get(Instruction inst, Operand array) {
+    if(containsKey(array))
+      return (ArrayInfo)super.get(array);
+    else
+      return makeArrayInfo(inst, array);
+  }
   /*public ArrayInfo get(Instruction inst, Operand array) {
     if(containsKey(array))
       return (ArrayInfo)super.get(array);
@@ -172,7 +178,7 @@ public class ArrayToArrayInfoMap extends HashMap {
   }
   public ArrayInfo makeArrayInfo(Instruction inst, Operand array) { //, boolean someStores) {
     //ArrayInfo arrInfo = get(inst, array);
-    if(containsKey(array)) { get(array).tryCnt=1; return get(array);}
+    if(containsKey(array)) { /*get(array).tryCnt=1;*/ return get(array);}
     //=================================================================
     //the code below was copied with modifications from AllocateArrays:
     int arrayBitSize = 0;
@@ -241,11 +247,10 @@ public class ArrayToArrayInfoMap extends HashMap {
 	if(Getelementptr.conforms(inst)) {
           Operand array = Getelementptr.getArrayVar(inst);
           ArrayInfo arrInfo = makeArrayInfo(inst, array);
-	  System.out.println("inst " + inst);
-	  System.out.println("array " + array);
 	}
       }
     }
+    
     for (Iterator vIt = new HashSet(bGraph.getAllNodes()).iterator(); 
          vIt.hasNext();) {
       BlockNode bNode = (BlockNode) vIt.next();
@@ -255,14 +260,12 @@ public class ArrayToArrayInfoMap extends HashMap {
 	Instruction inst = (Instruction)instIt.next();
 	if(ALoad.conforms(inst)) {
           Operand array = ALoad.getPrimalSource(inst);
-          ArrayInfo arrInfo = get(array);
+          ArrayInfo arrInfo = get(inst, array);
 	  arrInfo.setNodeLoadTime(bNode, 0);
 	}
 	else if(AStore.conforms(inst)) {
-	System.err.println("inst " + inst);
           Operand array = AStore.getPrimalDestination(inst);
-	System.err.println("array " + array);
-          ArrayInfo arrInfo = get(array);
+          ArrayInfo arrInfo = get(inst, array);
           arrInfo.setCantUseROM();
 	  arrInfo.setNodeStoreTime(bNode, 0);
 	}
@@ -285,7 +288,6 @@ public class ArrayToArrayInfoMap extends HashMap {
       if(Getelementptr.conforms(inst)) {
         Operand array = Getelementptr.getArrayVar(inst);
         ArrayInfo arrInfo = makeArrayInfo(inst, array);
-	System.out.println("new arrInfo " + arrInfo);
       }
     }
     for (Iterator instIt = instructions.iterator(); 
@@ -293,16 +295,14 @@ public class ArrayToArrayInfoMap extends HashMap {
       Instruction inst = (Instruction)instIt.next();
       if(ALoad.conforms(inst)) {
         Operand array = ALoad.getPrimalSource(inst);
-        ArrayInfo arrInfo = get(array);
+        ArrayInfo arrInfo = get(inst, array);
 	arrInfo.setNodeLoadTime(bNode, inst.getExecClkCnt());
-	System.out.println("new arrInfo at time " + arrInfo + " " + inst.getExecClkCnt());
       }
       else if(AStore.conforms(inst)) {
         Operand array = AStore.getPrimalDestination(inst);
-        ArrayInfo arrInfo = get(array);
+        ArrayInfo arrInfo = get(inst, array);
         arrInfo.setCantUseROM();
 	arrInfo.setNodeStoreTime(bNode, inst.getExecClkCnt());
-	System.out.println("new arrInfo at time " + arrInfo + " " + inst.getExecClkCnt());
       }
     }
   }

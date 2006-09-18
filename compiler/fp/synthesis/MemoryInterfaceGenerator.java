@@ -40,7 +40,8 @@ public final class MemoryInterfaceGenerator extends InterfaceGenerator {
   protected HashMap _mbMap;     // Stores the memory blocks for quick access.
   private MemInfoList _mem_info_list;
 
-  // this need to be fixed, the first two are probably okay, but the last four should no
+  // this need to be fixed, the first two are probably okay, but 
+  // the last four should not
   // be final static, unless this is just for XD1 ...
   protected static final int LOAD  = 0;
   protected static final int STORE = 1;
@@ -106,10 +107,15 @@ public final class MemoryInterfaceGenerator extends InterfaceGenerator {
 
 	System.out.println("Array "+array_name+" mem_offset "+ai.addr+" addr "+(Long.toHexString(addr_offset+ai.addr)));
 	System.out.println(" width "+ai.type.getWidth()+" depth "+ai.totalWords);
-	
 	// need to put this in my mem.info file.
 	MemInfo mem_info = new MemInfo(array_name, ai.type.getWidth(), ai.totalWords);
-	mem_info.setAddr(addr_offset+ai.addr);
+	
+	// this is where we move to byte addressable ... ???
+	//int addressable_size = mb.getAddressableSize();
+	// addressable size is an external problem...
+	int addressable_size = 8;
+	mem_info.setAddr(addr_offset+(addressable_size*ai.addr));
+	// this is correct.
 	mem_info.setAddrSimple(ai.addr);
 	_mem_info_list.add(mem_info);
 
@@ -320,9 +326,11 @@ public final class MemoryInterfaceGenerator extends InterfaceGenerator {
       String key = (String) mIt.next();
       List accesses = (List) _memoryAccesses.get(key);
       sort(accesses);  // Sort by blockname, then cycle
+
       int lIndex = 0, sIndex = 0;
       for(Iterator aIt = accesses.iterator(); aIt.hasNext(); ) {
 	MemoryAccessInfo aInfo = (MemoryAccessInfo) aIt.next();	
+
 	if(aInfo.accessType == LOAD)
 	  lIndex = mapToPorts(key, aInfo, aInfo.accessType, lIndex);
 	else
@@ -357,6 +365,10 @@ public final class MemoryInterfaceGenerator extends InterfaceGenerator {
 	HashSet accesses = (HashSet) ports.get(port);
 	for(Iterator aIt = accesses.iterator(); aIt.hasNext(); ) {
 	  MemoryAccessInfo info = (MemoryAccessInfo) aIt.next();
+
+	  System.out.println("Using memory info "+info);
+	  System.out.println("Using memory info datawire "+info.dataWire);
+
 	  int width = 0;
 	  if(port.matches(".*_dw[0-9]*")) {
 	    width = info.dataWidth;

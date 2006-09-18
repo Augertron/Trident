@@ -1,48 +1,56 @@
 (fabric.in tb_cast_loop
-  # This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
+  ; This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
 
 
   (write .reset 1)
   (wait .reset 10)
 
-  (write a -5.000000)
-  (read a -5.000000)
+  (write a 0xc0a00000)
+  (wait)
+  (read a 0xc0a00000)
 
   (write .start 1)
 
   (wait .done 122000)
 
-  (read a 499495.000000)
+  (read a 0x48f3e4e0)
+  (wait)
 
   # next test
-  (write a 6.000000)
-  (read a 6.000000)
+  (write a 0x40c00000)
+  (wait)
+  (read a 0x40c00000)
 
   (write .start 1)
 
   (wait .done 122000)
 
-  (read a 499506.000000)
+  (read a 0x48f3e640)
+  (wait)
 
   # next test
-  (write a 22.000000)
-  (read a 22.000000)
+  (write a 0x41b00000)
+  (wait)
+  (read a 0x41b00000)
 
   (write .start 1)
 
   (wait .done 122000)
 
-  (read a 499522.000000)
+  (read a 0x48f3e840)
+  (wait)
 
   # next test
-  (write a -1.000000)
-  (read a -1.000000)
+  (write a 0xbf800000)
+  (wait)
+  (read a 0xbf800000)
 
   (write .start 1)
 
   (wait .done 122000)
 
-  (read a 499499.000000)
+  (read a 0x48f3e560)
+  (wait)
 
 
 )

@@ -1,18 +1,20 @@
 (fabric.in tb_simple_pi
-  # This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
+  ; This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
 
 
   (write .reset 1)
   (wait .reset 10)
 
-  (write pi 0.000000)
-  (read pi 0.000000)
+  (write pi 0x00000001)
+  (wait)
+  (read pi 0x00000001)
 
   (write .start 1)
 
   (wait .done 60000)
 
-  (read pi 3.140737)
+  (read pi 0x404901d4)
+  (wait)
 
 
 )

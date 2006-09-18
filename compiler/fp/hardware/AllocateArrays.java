@@ -118,12 +118,15 @@ public class AllocateArrays {
     // later...in placeArraysInMemory().
 
 
-    //System.out.println(" new array info "+arrayName+" arrayBitSize "+(arrayBitSize)+" / mb.getWordSize() "+mb.getWordSize());
+    System.out.println(" new array info "+arrayName+" arrayBitSize "+(arrayBitSize)+"/ aType.getWidth() "+aType.getWidth());
+    System.out.println(" count ... "+(arrayBitSize/aType.getWidth()));
+
+    //int addressable_size = mb.getAddressableSize();
+    // addressable size is an external problem...
+    //int addressable_size = 8;
 
      ArrayInfo ai = new ArrayInfo(arrayName, dimInfo, 
-				  // this seems wrong...
-				  //arrayBitSize/mb.getWordSize(), 
-				  arrayBitSize/aType.getWidth(),
+				  arrayBitSize/aType.getWidth(), 
 				  aType);
      return ai;
   }

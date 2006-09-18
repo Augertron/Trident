@@ -36,7 +36,11 @@ public class Port extends Base {
     _portUseCnter = new PortUseCnt();
   }
 
-  public void resetPortUseCnter() {_portUseCnter = new PortUseCnt();}
+  public void resetPortUseCnter() {
+    _portUseCnter = new PortUseCnt(); 
+    _portUseCnter.clear();
+    //System.out.println("_portUseCnter.size() " + _portUseCnter.size());
+  }
   public PortUseCnt getPortUseCnter() {return _portUseCnter;}
   
   public String toString() {

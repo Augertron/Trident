@@ -15,6 +15,7 @@ import fp.circuit.PortTag;
 
 import fp.util.vhdl.generator.*;
 
+import fp.synthesis.SynthesisException;
 
 
 public class VHDLOperator extends Operator {
@@ -237,6 +238,13 @@ public class VHDLOperator extends Operator {
       
       VHDLNet in0, in1, s;
       PortTag tag = findInPort("in0");
+      
+      if (tag == null) {
+	throw new SynthesisException("Operator "+getName()
+				     +" Mux without in0 input - out "+
+				     out+" out net "+net+"\n"+this.toString());
+      }
+
       in0 = (VHDLNet)tag.getNet();
       tag = findInPort("in1");
       in1 = (VHDLNet)tag.getNet();
@@ -455,8 +463,15 @@ public class VHDLOperator extends Operator {
       
     } else {
 
-	System.out.println("VHDLOperator::build() I do not know how to handle type "+type.getName()+" "+type.getSymbol()+"  ");
-	System.exit(-1);
+      /*
+      System.out.println("VHDLOperator::build() I do not know how to handle type "+type.getName()+" "+type.getSymbol()+"  ");
+      System.exit(-1);
+      */
+
+      throw new SynthesisException("VHDLOperator::build() I tried everything else and" + 
+			     "I do not know how to handle type "
+			     +type.getName()+" "+type.getSymbol()+"\n"
+			     +this.toString());
     }
     }
   }

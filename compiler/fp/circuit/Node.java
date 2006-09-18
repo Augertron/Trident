@@ -275,6 +275,25 @@ public abstract class Node extends Nameable {
     return (PortTag)null;
   }
 
+
+  public String toString() {
+    StringBuffer sbuf = new StringBuffer("Node:\n");
+    sbuf.append("\t name = "+getName()+" unique_name = "+getUniqueName()+"\n");
+    sbuf.append("\t ref_name = "+_ref_name+" object_name = "+_object_name+"\n");
+    sbuf.append("\t parent = "+_parent+" parent_name = "+_parent.getName()+"\n");
+    sbuf.append("\t inports:\n");
+    for(Iterator iter=_inports.iterator(); iter.hasNext(); ) {
+      PortTag info = (PortTag) iter.next();
+      sbuf.append("\t\t "+info.toString()+"\n");
+    }
+    sbuf.append("\t outports:\n");
+    for(Iterator iter=_outports.iterator(); iter.hasNext(); ) {
+      PortTag info = (PortTag) iter.next();
+      sbuf.append("\t\t "+info.toString()+"\n");
+    }
+    return sbuf.toString();
+  }
+
   
   
 }

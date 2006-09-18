@@ -256,6 +256,164 @@ public class Instruction implements Operators {
   public void setFlags(int flag_int) { _flags = flag_int; }
   
    
+  /**
+  get operands used by this instruction  (This is different than
+  the use and def hashes in that, it returns a set of operands used
+  by an instruction rather than a list of Instructions in a block that
+  use a given Operand.)
+  */
+  public HashSet getUses() {
+  
+    HashSet uses = new HashSet();
+    if (Branch.conforms(this)) { 
+      uses.add(Branch.getBoolean(this));
+      uses.add(Branch.getTarget1(this));
+      uses.add(Branch.getTarget2(this));
+    }
+    else if (Goto.conforms(this)) { 
+      //no uses?
+    }
+    else if(operator.isCall()) {
+      uses.add(Call.getFunction(this));
+      int i = 0;
+      while(Call.hasArg(this, i)) {
+        uses.add(Call.getArgVal(this, i));
+	i++;
+      }
+    }
+    else if(Load.conforms(this)) {
+      uses.add(Load.getSource(this));
+    }
+    else if(ALoad.conforms(this)) {
+      uses.add(ALoad.getAddrSource(this));
+      uses.add(ALoad.getPrimalSource(this));
+    }
+    else if(Store.conforms(this)) {
+      uses.add(Store.getValue(this));
+    }
+    else if(AStore.conforms(this)) {
+      uses.add(AStore.getAddrDestination(this));
+      uses.add(AStore.getValue(this));
+    }
+    else if(operator.isReturn()){ 
+      uses.add(Return.getVal(this));
+    }
+    else if(Phi.conforms(this)) {
+      int i = 0;
+      while(Phi.hasVal(this, i)) {
+        uses.add(Phi.getValOperand(this, i));
+        uses.add(Phi.getValLabel(this, i));
+	i++;
+      }
+    }
+    else if(Getelementptr.conforms(this)) {
+      uses.add(Getelementptr.getArrayVar(this));
+      int i = 0;
+      while(Getelementptr.hasVal(this, i)) {
+        uses.add(Getelementptr.getValOperand(this, i));
+	i++;
+      }
+    }
+    else if(Select.conforms(this)) {
+      uses.add(Select.getCondition(this));
+      uses.add(Select.getVal1(this));
+      uses.add(Select.getVal2(this));
+    }
+    else if(Cast.conforms(this)) { 
+      uses.add(Cast.getType(this));
+      uses.add(Cast.getValue(this));
+    }
+    else if(Binary.conforms(this)) {
+      uses.add(Binary.getVal1(this));
+      uses.add(Binary.getVal2(this));
+    }
+    else if(Unary.conforms(this)) {
+      uses.add(Unary.getVal(this));
+    }
+    else if(Test.conforms(this)) {
+      uses.add(this.getOperand(1));
+      uses.add(this.getOperand(2));
+    }
+    else if(Switch.conforms(this)) { //what is this operand?
+      if(Switch.hasDefault(this))
+        uses.add(Switch.getDefault(this)); //is this a use or an def?
+      if(Switch.hasTest(this))
+        uses.add(Switch.getTest(this)); //is this a use or an def?
+      int i = 0;
+      while(Switch.hasCase(this, i)) {
+        uses.add(Switch.getCaseValue(this, i));
+	i++;
+      }
+    }
+    else if(Shift.conforms(this)) { //what is this operand?
+      //no uses?
+    }
+    return uses;
+    
+  }
+  
+  
+  /**
+  get operands defined by this instruction
+  */
+  public HashSet getDefs() {
+  
+    HashSet defs = new HashSet();
+    if (Branch.conforms(this)) { 
+      //no defs?
+    }
+    else if (Goto.conforms(this)) { 
+      defs.add(Goto.getTarget(this));
+    }
+    else if(operator.isCall()) {
+      defs.add(Call.getResult(this));
+    }
+    else if(Load.conforms(this)) {
+      defs.add(Load.getResult(this));
+    }
+    else if(ALoad.conforms(this)) {
+      defs.add(ALoad.getResult(this));
+    }
+    else if(Store.conforms(this)) {
+      defs.add(Store.getDestination(this));
+    }
+    else if(AStore.conforms(this)) {
+      defs.add(AStore.getPrimalDestination(this));
+    }
+    else if(operator.isReturn()){ 
+      //no defs
+    }
+    else if(Phi.conforms(this)) {
+      defs.add(Phi.getResult(this));
+    }
+    else if(Getelementptr.conforms(this)) {
+      defs.add(Getelementptr.getResult(this));
+    }
+    else if(Select.conforms(this)) {
+      defs.add(Select.getResult(this));
+    }
+    else if(Cast.conforms(this)) { 
+      defs.add(Cast.getResult(this));
+    }
+    else if(Binary.conforms(this)) {
+      defs.add(Binary.getResult(this));
+    }
+    else if(Unary.conforms(this)) {
+      defs.add(Unary.getResult(this));
+    }
+    else if(Test.conforms(this)) {
+      defs.add(Test.getResult(this));
+    }
+    else if(Switch.conforms(this)) { //what is this operand?
+      //no defs?
+    }
+    else if(Shift.conforms(this)) { //what is this operand?
+      //no uses?
+    }
+    return defs;
+    
+  }
+  
   // scheduling stuff
   // schedule
   // start cycle/start value

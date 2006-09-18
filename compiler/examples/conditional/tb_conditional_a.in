@@ -1,81 +1,110 @@
 (fabric.in tb_conditional_a
-  # This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
+  ; This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
 
 
   (write .reset 1)
   (wait .reset 10)
 
   (write a 10.000000)
+  (wait)
   (read a 10.000000)
   (write b 11.000000)
+  (wait)
   (read b 11.000000)
   (write c 12.000000)
+  (wait)
   (read c 12.000000)
   (write d 13.000000)
+  (wait)
   (read d 13.000000)
 
   (write .start 1)
 
   (wait .done 120)
 
-  (read a 1.000000)
-  (read b 7.000000)
+  (read a 0x3f800000)
+  (wait)
+  (read b 0x40e00000)
+  (wait)
 
   # next test
   (write a 10.000000)
+  (wait)
   (read a 10.000000)
-  (write b 0.000000)
-  (read b 0.000000)
+  (write b 0x00000000)
+  (wait)
+  (read b 0x00000000)
   (write c 12.000000)
+  (wait)
   (read c 12.000000)
   (write d 13.000000)
+  (wait)
   (read d 13.000000)
 
   (write .start 1)
 
   (wait .done 120)
 
-  (read a 1.000000)
-  (read b 2.000000)
-  (read c 6.000000)
+  (read a 0x3f800000)
+  (wait)
+  (read b 0x40000000)
+  (wait)
+  (read c 0x40c00000)
+  (wait)
 
   # next test
   (write a 10.000000)
+  (wait)
   (read a 10.000000)
-  (write b 0.000000)
-  (read b 0.000000)
-  (write c 0.000000)
-  (read c 0.000000)
+  (write b 0x00000000)
+  (wait)
+  (read b 0x00000000)
+  (write c 0x00000000)
+  (wait)
+  (read c 0x00000000)
   (write d 13.000000)
+  (wait)
   (read d 13.000000)
 
   (write .start 1)
 
   (wait .done 120)
 
-  (read a 1.000000)
-  (read b 2.000000)
-  (read c 3.000000)
-  (read d 5.000000)
+  (read a 0x3f800000)
+  (wait)
+  (read b 0x40000000)
+  (wait)
+  (read c 0x40400000)
+  (wait)
+  (read d 0x40a00000)
+  (wait)
 
   # next test
   (write a 10.000000)
+  (wait)
   (read a 10.000000)
-  (write b 0.000000)
-  (read b 0.000000)
-  (write c 0.000000)
-  (read c 0.000000)
-  (write d 0.000000)
-  (read d 0.000000)
+  (write b 0x00000000)
+  (wait)
+  (read b 0x00000000)
+  (write c 0x00000000)
+  (wait)
+  (read c 0x00000000)
+  (write d 0x00000000)
+  (wait)
+  (read d 0x00000000)
 
   (write .start 1)
 
   (wait .done 120)
 
-  (read a 1.000000)
-  (read b 2.000000)
-  (read c 3.000000)
-  (read d 4.000000)
+  (read a 0x3f800000)
+  (wait)
+  (read b 0x40000000)
+  (wait)
+  (read c 0x40400000)
+  (wait)
+  (read d 0x40800000)
+  (wait)
 
 
 )

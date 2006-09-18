@@ -13,14 +13,8 @@ import java.io.*;
 import fp.hardware.*;
 public class ASAPSchedule extends Schedule
 {
-  public ASAPSchedule() {
-    super(false, null);
-  }
-  public ASAPSchedule(boolean packNicht) {
-    super(packNicht, null);
-  }
-  public ASAPSchedule(boolean packNicht, BlockNode node) {
-    super(packNicht, node);    
+  public ASAPSchedule(BlockNode node) {
+    super(node);    
   }
   /*
   method: aSAP_AssignClkTck 
@@ -134,6 +128,9 @@ public class ASAPSchedule extends Schedule
   	    float runlength = getInstrRunLength(tmpInstr, chipInfo);
   	    if(maxRank < clktmp_int + runlength)
   	      maxRank = clktmp_int + runlength; 
+  	  /*while(!chipInfo.analyzeHardwareUse(instr, (int)maxRank)) {
+  	    maxRank++;
+  	  }*/
   	  } 
           //if all the inputs to the predecessor instruction were constants
           //set its execution time to be equal to this one's
@@ -141,8 +138,12 @@ public class ASAPSchedule extends Schedule
   	    Instruction tmpInstr2 = 
         		  (Instruction)(saveConstsHM.get(this_in.toString()));
   	    float clktmp_int = tmpInstr2.getExecTime();
-  	    if(maxRank > clktmp_int)
+  	  /*while(!chipInfo.analyzeHardwareUse(instr, (int)maxRank)) {
+  	    maxRank++;
+  	  }*/
+  	    if(maxRank > clktmp_int) {
   	      tmpInstr.setExecTime(maxRank);
+	    }
   	    saveConstsHM.remove(this_in);
   	  } 
           //if all inputs are primals, types, constants, TRUE, or FALSE set 
@@ -150,6 +151,9 @@ public class ASAPSchedule extends Schedule
   	  else if((inputsAllPrimalsOrConsts(((ArrayList)useLists.get(instr))))
         	&&(maxRank < 0)) {
   	    maxRank=0;
+  	    /*while(!chipInfo.analyzeHardwareUse(instr, (int)maxRank)) {
+  	      maxRank++;
+  	    }*/
   	  }
           //if all inputs are constants, set maxRank to -2 so that I can know
           //to save this instruction to handle later
@@ -163,7 +167,15 @@ public class ASAPSchedule extends Schedule
   	  else if ((inputsAllConsts((ArrayList)useLists.get(instr)))&&
         	   (maxRank < 0)) {
   	    maxRank = 0;
+  	    /*while(!chipInfo.analyzeHardwareUse(instr, (int)maxRank)) {
+  	      maxRank++;
+  	    }*/
   	  }
+  	    /*while(!chipInfo.analyzeHardwareUse(_node, instr, (int)maxRank)) {
+  	      maxRank++;
+	      //if(maxRank >= rankLimit)
+	        //rankLimit++;
+  	    }*/
   	}
   	
   	
@@ -186,11 +198,13 @@ public class ASAPSchedule extends Schedule
           //analyze hardware and bus count usage
           //while there is a problem, keep pushing the instruction forward in 
           //time
-  	  while(!chipInfo.analyzeHardwareUse(instr, (int)maxRank)) {
+  	  while(!chipInfo.analyzeHardwareUse(_node, instr, (int)maxRank)) {
   	    maxRank++;
+	      //if(maxRank >= rankLimit)
+	        //rankLimit++;
   	  }
   	    
-          chipInfo.saveNewHardwareUsage(instr, (int)maxRank);
+          chipInfo.saveNewHardwareUsage(_node, instr, (int)maxRank);
   	  
   	  instr.setExecTime(maxRank);
 	  //System.out.println("Scheduled "+instr+" at "+maxRank);

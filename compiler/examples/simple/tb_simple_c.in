@@ -1,24 +1,79 @@
 (fabric.in tb_simple_c
-  # the leading "." means that the name is not explicit
-  # for start this is not exactly true, -- uh, where is 'done' mapped?
+  ; This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
+
+  (run 8 us)
+
+
   (write .reset 1)
   (wait .reset 10)
 
-  (write a 1.0)
-  (read a 1.0)
-  (write b 2.0)
-  (read b 2.0)
-	
+  (write a 0xc0a00000)
+  (wait)
+  (read a 0xc0a00000)
+  (write b 0x41000000)
+  (wait)
+  (read b 0x41000000)
+
   (write .start 1)
 
-  (wait .done 100)
-  # this could be an assertion too
-  # then we might need wait done all or something...
-  (read a 16.0)
-  (read b 2.0)
+  (wait .done 200)
 
-  (write b -1.0)
+  (read a 0x45800000)
+  (wait)
+  (read b 0x41000000)
+  (wait)
+
+  # next test
+  (write a 0x40c00000)
+  (wait)
+  (read a 0x40c00000)
+  (write b 0xc1600000)
+  (wait)
+  (read b 0xc1600000)
+
   (write .start 1)
-  (wait .done 100)
-  (read a 1.0) 
+
+  (wait .done 200)
+
+  (read a 0x47161000)
+  (wait)
+  (read b 0xc1600000)
+  (wait)
+
+  # next test
+  (write a 0x41b00000)
+  (wait)
+  (read a 0x41b00000)
+  (write b 0x41a80000)
+  (wait)
+  (read b 0x41a80000)
+
+  (write .start 1)
+
+  (wait .done 200)
+
+  (read a 0x483dec40)
+  (wait)
+  (read b 0x41a80000)
+  (wait)
+
+  # next test
+  (write a 0xbf800000)
+  (wait)
+  (read a 0xbf800000)
+  (write b 0xc0a00000)
+  (wait)
+  (read b 0xc0a00000)
+
+  (write .start 1)
+
+  (wait .done 200)
+
+  (read a 0x441c4000)
+  (wait)
+  (read b 0xc0a00000)
+  (wait)
+
+
 )
+

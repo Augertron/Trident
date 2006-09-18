@@ -13,7 +13,7 @@ public class PortTag extends Nameable implements Direction {
   //public final static int OUT = 1;
   //public final static int INOUT = 2;
 
-  public static final String[] port_name = {"IN", "OUT", "INOUT" };
+  public static final String[] port_name = {"n/a", "IN", "OUT", "INOUT" };
 
   // There parents are nodes -- they are subjegated to Node underlings
   private Node _parent;
@@ -56,6 +56,7 @@ public class PortTag extends Nameable implements Direction {
     StringBuffer sbuf = new StringBuffer("Port ");
     sbuf.append(getName()).append(" (").append(_width);
     sbuf.append(") : ").append(getTypeString());
+    sbuf.append(" - net "+getNet());
     return sbuf.toString();
   }
 

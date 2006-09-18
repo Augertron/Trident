@@ -42,7 +42,8 @@ public class ControlRemoval extends Pass implements BlockPass {
 	  || Goto.conforms(instruction)
 	  || Return.conforms(instruction))
 	dead.add(instruction);
-      assert Switch.conforms(instruction) : "Illegal switch in node "+node.getName();
+      if (Switch.conforms(instruction)) 
+	System.err.println("Illegal switch in node "+node.getName());
     }
     for(Iterator iter = dead.iterator(); iter.hasNext(); ) {
       Instruction instruction = (Instruction)iter.next();

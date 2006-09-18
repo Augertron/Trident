@@ -1,0 +1,42 @@
+(fabric.in tb_nonbonded_simple
+  (run 20 us)
+
+  (write .reset 1)
+  (wait .reset 10)
+  (write rx0 0x3fc00000)
+  (write rx1 0x40933333)
+  (write rx2 0x412fae14)
+  (wait)
+  (read rx0 0x3fc00000)
+  (read rx1 0x40933333)
+  (read rx2 0x412fae14)
+
+
+  (write ry0 0x422a6666)
+  (write ry1 0x41fd999a)
+  (write ry2 0x4185e1e5)
+  (wait)
+  (read ry0 0x422a6666)
+  (read ry1 0x41fd999a)
+  (read ry2 0x4185e1e5)
+
+
+  (write rz0 0xc035c28f)
+  (write rz1 0x4202b852)
+  (write rz2 0xc11db22d)
+  (wait)
+  (read rz0 0xc035c28f)
+  (read rz1 0x4202b852)
+  (read rz2 0xc11db22d)
+
+
+
+  (write .start 1)
+
+  (wait .done 1000)
+
+  (read force0 0xaea1fd39)
+  (read force1 0xad30ac08)
+  (read force2 0xb316fd1a)
+
+)

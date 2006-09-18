@@ -181,6 +181,84 @@
 
   </target>  
 
+  <target name="src-dist" depends="compile"
+        description="generate the distribution" >
+
+    <!-- Create the distribution directory -->
+    <filter filtersfile="fp/util/FiltersFile.ant"/>
+
+    <mkdir dir="${dist}/vhdl"/>
+
+    <mkdir dir="${dist}/bin"/>   
+    <copy file="tcc" todir="${dist}/bin" filtering="true" />
+
+    <mkdir dir="${dist}/docs"/>   
+
+    <exec executable="make" failonerror="true" dir="${basedir}/doc/manual">
+    </exec>
+    <copy todir="${dist}/docs" filtering="true" >
+      <fileset dir="doc/manual" includes="**/*.pdf" excludes="**/figures/*" />
+    </copy>
+    <copy todir="${dist}/docs" filtering="true" >
+      <fileset dir="doc/manual" includes="**/*.pdf" excludes="**/figures/*" />
+    </copy>
+    <copy todir="${dist}/" filtering="true" >
+      <fileset dir="doc/top" excludes="**/README*" />
+    </copy>
+
+
+    <mkdir dir="${dist}/vhdl/trident"/>
+    <copy todir="${dist}/vhdl/trident" filtering="true" >
+      <fileset dir="lib/trident"/>
+    </copy>
+
+    <mkdir dir="${dist}/trident-src/"/>
+    <mkdir dir="${dist}/trident-src/fp"/>
+    <copy todir="${dist}/trident-src/fp" filtering="true" >
+      <fileset dir="fp"/>
+    </copy>
+
+    <mkdir dir="${dist}/llv-src/"/>
+    <copy todir="${dist}/llv-src/" filtering="true" >
+      <fileset dir="llvm-1.3" excludes="**/*.xml"/>
+    </copy>
+
+    <mkdir dir="${dist}/examples"/>
+    <copy todir="${dist}/examples" filtering="true" >
+      <fileset dir="examples" 
+         excludes="**/*.xml, **/*.in, **/Make*, **/tb_*, **/call/*, **/apps/*, **/photon/*"  />
+ 
+    </copy>
+
+    <mkdir dir="${dist}/lib/conf"/>
+    <copy todir="${dist}/lib/conf" filtering="true" >
+       <fileset dir="lib/conf"/>
+    </copy>
+
+    <chmod file="${dist}/llv-src/mkconf.sh" perm="ugo+rx"/>
+
+    <tar longfile="gnu" compression="gzip"
+     tarfile="${build}/dist.tgz" >
+    <tarfileset dir="${dist}/.." mode="755">
+      <include name="trident/bin/llv"/>
+      <include name="trident/bin/tcc"/>
+      <include name="trident/llv-src/mkconf.sh"/>
+    </tarfileset>
+    <tarfileset dir="${dist}/..">
+      <include name="**"/>
+      <exclude name="trident/bin/llv"/>
+      <exclude name="trident/bin/tcc"/>
+      <exclude name="trident/llv-src/mkconf.sh"/>
+      <exclude name="trident/llv-src/configure"/>
+      <exclude name="**/autom4te.cache/*"/>
+    </tarfileset>
+   </tar>
+
+
+  </target>  
+
+
+
 
   <target name="usage">
     <echo message="INIT USAGE:" /> 

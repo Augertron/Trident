@@ -11,6 +11,7 @@ import fp.util.*;
 import java.io.*;
 
 import fp.hardware.*;
+import fp.GlobalOptions;
 
 
 /** 
@@ -47,28 +48,15 @@ public class Schedule {
   //are actually only used for sorting--see sort function at end of file):
   public HashMap _windowMinGlobal;
   public HashMap _windowMaxGlobal;
-  private BlockNode _node;  
-  /** when this flag is set to true, operations that have latencies less than 
-   *  one, will not be packed within the same cycle.
-   */
-  private boolean _packNicht;
+  public BlockNode _node;  
   
     //this is only a temporary solution to save this here.  Later it will 
     //come from the options class
   //static public float cycleLength = (float)1.0;
   
-  public Schedule() {
-    this(false, null);
-  }
-
-  public Schedule(boolean packNicht) {
-    this(packNicht, null);
-  }
-
-  public Schedule(boolean packNicht, BlockNode node) {
+  public Schedule(BlockNode node) {
     _instList = new ArrayList();
     _lookUpTable = new int[500];
-    _packNicht = packNicht;
     _node = node;
     
   }
@@ -288,21 +276,39 @@ public class Schedule {
 				       ArrayList useList, boolean ignorePredsNicht) {
     Operand op_Operand;
     boolean outIsPrimal = false;
-    int numDefs = inst.getNumberOfDefs();
-    for(int i = 0; i < numDefs; i++) {
-      op_Operand = inst.getOperand(i);
-      if(op_Operand != null) {
-	defList.add(op_Operand);
-	if(op_Operand.isPrimal())
-	  outIsPrimal = true;
+    if(AStore.conforms(inst)){
+      outIsPrimal = true;
+      defList.add(AStore.getPrimalDestination(inst));
+      useList.add(AStore.getAddrDestination(inst));
+      useList.add(AStore.getValue(inst));
+    }
+    else if(Getelementptr.conforms(inst)){
+      //outIsPrimal = true;
+      defList.add(Getelementptr.getResult(inst));
+      int i = 0;
+      while(Getelementptr.hasVal(inst, i)) {
+        useList.add(Getelementptr.getValOperand(inst, i));
+	i++;
       }
     }
-    
-    int total = inst.getNumberOfOperands();
-    for(int i = numDefs; i < total; i++) {
-      op_Operand = inst.getOperand(i);
-      if(op_Operand != null)
-	useList.add(op_Operand);
+    else
+    {
+      int numDefs = inst.getNumberOfDefs();
+      for(int i = 0; i < numDefs; i++) {
+	op_Operand = inst.getOperand(i);
+	if(op_Operand != null) {
+	  defList.add(op_Operand);
+	  if(op_Operand.isPrimal())
+	    outIsPrimal = true;
+	}
+      }
+
+      int total = inst.getNumberOfOperands();
+      for(int i = numDefs; i < total; i++) {
+	op_Operand = inst.getOperand(i);
+	if(op_Operand != null)
+	  useList.add(op_Operand);
+      }
     }
     
     //ignore predicates when scheduling unless, ignorePredsNicht is true or 
@@ -481,7 +487,7 @@ public class Schedule {
   public float getInstrRunLength(Instruction inst, ChipDef chipInfo) {
     float latency = inst.getRunLength();
 
-    if(_packNicht && latency<1)
+    if(!GlobalOptions.packInstructions && latency<1)
       latency=1;
     //System.out.println(" instr "+inst+" latency "+latency);
     return latency;

@@ -33,9 +33,6 @@ public class MasterScheduler extends InstructionList
 {
   
   //private BlockNode _node;
-  private boolean _packNicht = GlobalOptions.doNotPackInstrucs;
-  private boolean _ignorePredsNicht = GlobalOptions.doNotIgnorePreds;
-  private float _budgetRatio = GlobalOptions.budgetRatio;
   private OperationSelection _opSel = null;
   private ChipDef _chipdef = null;
   private Schedule _schedSave = null;
@@ -72,35 +69,48 @@ public class MasterScheduler extends InstructionList
     resetSuccsList();
     _chipdef.resetPorts();
     
-    if((!_node.getIsRecursive())||GlobalOptions.noModSched) {
+    if((!_node.getIsRecursive())||!GlobalOptions.modSched) {
 
 
       if(GlobalOptions.scheduleSelect == GlobalOptions.ASAPSchedSelect) {
-    	ASAPSchedule schedule = new ASAPSchedule(_packNicht, _node);
+    	ASAPSchedule schedule = new ASAPSchedule(_node);
         
-	schedule.asapSchedule(new ArrayList(getInstructions()), _ignorePredsNicht, 
+	schedule.asapSchedule(new ArrayList(getInstructions()), !GlobalOptions.ignorePreds, 
 	                            _chipdef, dfg);
         _schedSave = schedule;
       }
       else if(GlobalOptions.scheduleSelect == GlobalOptions.ALAPSchedSelect) {
-    	ALAPSchedule schedule = new ALAPSchedule(_packNicht, _node);
-    	schedule.alapSchedule(new ArrayList(getInstructions()), _ignorePredsNicht, 
+    	ALAPSchedule schedule = new ALAPSchedule(_node);
+    	schedule.alapSchedule(new ArrayList(getInstructions()), !GlobalOptions.ignorePreds, 
 	                            _chipdef, dfg);
         _schedSave = schedule;
       }
       else if(GlobalOptions.scheduleSelect == GlobalOptions.FDSchedSelect) {
-        InstructionList aSAPList = listCopy();
-
-        InstructionList aLAPList = listCopy();
+        //InstructionList aSAPList = listCopy();
+        //InstructionList aLAPList = listCopy();
 	
-    	ASAPSchedule asapSchedTmp = new ASAPSchedule(_packNicht, _node);
+        InstructionList aSAPList = this;
+        InstructionList aLAPList = this;
+
+    	FDWindows windowMap = new FDWindows();
+	
+    	ASAPSchedule asapSchedTmp = new ASAPSchedule(_node);
         _chipdef.resetPorts();
 	boolean result = asapSchedTmp.asapSchedule(new ArrayList(aSAPList.getInstructions()), 
-	                                           _ignorePredsNicht, _chipdef, dfg);
-        if(!result) {
+	                                           !GlobalOptions.ignorePreds, _chipdef, dfg);
+        ArrayList asapInstList = new ArrayList(aSAPList.getInstructions());
+        for (Iterator it = getInstructions().iterator(); 
+    	    it.hasNext(); ) {
+          Instruction instr = (Instruction)it.next();
+          windowMap.getASAPTimes(instr, asapInstList);
+
+        }  //end foreach
+	if(!result) {
           throw new ScheduleException("Error: Failed to create ASAP schedule " +
 	                              "for Force-Directed Schedule");
         }
+        _schedSave = asapSchedTmp;
+	unSchedule(graph);
        //System.out.println("ASAP schedule ");
 	//aSAPList.scheduleToExecTime();
        // aSAPList.printSchedule();
@@ -109,12 +119,21 @@ public class MasterScheduler extends InstructionList
 	_chipdef.completeInitialize(); 
 	ArrayList alaplist = new ArrayList(aLAPList.getInstructions());
         _chipdef.resetPorts();
-        ALAPSchedule alapSchedTmp = new ALAPSchedule(_packNicht);
-        result = alapSchedTmp.alapSchedule(alaplist, _ignorePredsNicht, _chipdef, dfg);
+        ALAPSchedule alapSchedTmp = new ALAPSchedule(_node);
+        result = alapSchedTmp.alapSchedule(alaplist, !GlobalOptions.ignorePreds, _chipdef, dfg);
+        ArrayList alapInstList = new ArrayList(aSAPList.getInstructions());
+        for (Iterator it = getInstructions().iterator(); 
+    	    it.hasNext(); ) {
+          Instruction instr = (Instruction)it.next();
+          windowMap.getALAPTimes(instr, alapInstList);
+
+        }  //end foreach
         if(!result) {
           throw new ScheduleException("Error: Failed to create ALAP schedule " +
 	                              "for Force-Directed Schedule");
         }
+        _schedSave = alapSchedTmp;
+	unSchedule(graph);
         _chipdef.completeInitialize(); 
         
        //System.out.println("ALAP schedule ");
@@ -123,16 +142,13 @@ public class MasterScheduler extends InstructionList
        //System.out.println(" ");
        //System.out.println(" ");
 	int tryCnt = 0;
-        FDSchedule schedule = new FDSchedule(dfg, _packNicht, _node);
+        FDSchedule schedule = new FDSchedule(dfg, _node);
         _schedSave = schedule;
-    	FDWindows windowMap = new FDWindows();
         //load initial instruction window sizes
         for (Iterator it = getInstructions().iterator(); 
     	    it.hasNext(); ) {
           Instruction instr = (Instruction)it.next();
-          windowMap.loadWinsFromALAPnASAPScheds(instr, 
-	                                        new ArrayList(aSAPList.getInstructions()), 
-	                                        new ArrayList(aLAPList.getInstructions()));
+          windowMap.setMinMax(instr);
 
         }  //end foreach
         boolean succeeded = true;
@@ -144,14 +160,17 @@ public class MasterScheduler extends InstructionList
           _chipdef.saveNode(_node);
 	  ArrayList list = new ArrayList(getInstructions());
 	  Collections.shuffle(list);
-          succeeded = schedule.fD_Schedule(list, windowMapTmp, _ignorePredsNicht,
-        				   _chipdef);
-          if(!(succeeded)) {
+          _chipdef.resetPorts();
+	  unSchedule(graph);
+          succeeded = schedule.fD_Schedule(list, windowMapTmp, 
+	                                   !GlobalOptions.ignorePreds, _chipdef);
+          schedule.seed((int)System.currentTimeMillis());
+	  if(!(succeeded)) {
 	    _chipdef.initializeForOneNode(_node);
 	    _chipdef.resetPorts();
 	  }
         }while(tryCnt<GlobalOptions.maxAttemptsOnFDSched && !succeeded);
-        if(tryCnt>GlobalOptions.maxAttemptsOnFDSched) {
+        if(tryCnt>=GlobalOptions.maxAttemptsOnFDSched) {
           throw new ScheduleException("Error: Failed to create a Force-Direct" +
 	                              "ed Schedule");
         }
@@ -161,7 +180,7 @@ public class MasterScheduler extends InstructionList
     }
     else { //modulo schedule
     
-      ModSched modScheduler = new ModSched(_budgetRatio, _opSel, _node);
+      ModSched modScheduler = new ModSched(_opSel, _node);
       _modScheduled = true;
       _schedSave = modScheduler;
       for (Iterator it = _node.getOutEdges().iterator(); it.hasNext();) {

@@ -112,9 +112,13 @@ public class IndexMatch extends HashMap {
       //go through the list of operands used by each array's GEP instruction
       //to make sure they are calculating the exact same address offset
       for(int n=0; n<size(); n++) {
-        if((((Operand)super.get(n)).toString().compareTo(((Operand)arr2Set.get(n)).toString()))!=0)
+        //if((((Operand)super.get(n)).toString().compareTo(((Operand)arr2Set.get(n)).toString()))!=0)
+        //System.out.println("super.get(n) " + super.get(n));
+        //System.out.println("arr2Set.get(n) " + arr2Set.get(n));
+	if(super.get(n) != arr2Set.get(n))
           return false;
       }
+        //System.out.println("indexl list match");
       return true;
     
     }
@@ -268,6 +272,10 @@ public class IndexMatch extends HashMap {
     HashSet arr1IndexSets = (HashSet)super.get(arr1);
     HashSet arr2IndexSets = (HashSet)super.get(arr2);
     
+/*System.out.println("##############################################");
+System.out.println("match test between:");
+System.out.println("arr1 " + arr1);
+System.out.println("arr2 " + arr2);*/
     for (Iterator arr1It = arr1IndexSets.iterator(); 
 	 arr1It.hasNext(); ) {
       IndexList arr1IndexList = (IndexList)arr1It.next();
@@ -284,13 +292,20 @@ public class IndexMatch extends HashMap {
       }
     }
     _saveCalctdmatches.saveIsMatch(arr1, arr2, true);
+/*System.out.println("match found");
+System.out.println("##############################################");*/
     return true;
   }
   
   public boolean matches(Operand arr1, HashSet otherArrays) {
+    //if(otherArrays.contains(arr1)) return false;
+System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&");
     for (Iterator arrIt = otherArrays.iterator(); 
 	 arrIt.hasNext(); ) {
       Operand array = (Operand)arrIt.next();
+System.out.println("arr1 " + arr1);
+System.out.println("array " + array);
+      //if(arr1 == array) continue;
       if(matches(arr1, array))
         return true;
     }

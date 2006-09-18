@@ -1,21 +1,29 @@
 (fabric.in tb_simple_loop_test_a
+  ; This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
+
+
   (write .reset 1)
   (wait .reset 10)
-  
+
   (write a 0)
+  (wait)
   (read a 0)
   (write b 1)
+  (wait)
   (read b 1)
   (write c 1)
+  (wait)
   (read c 1)
   (write d 13)
+  (wait)
   (read d 13)
   (write e 14)
+  (wait)
   (read e 14)
 
   (write .start 1)
 
-  (wait .done 400)
+  (wait .done 340)
 
   (read a 10)
   (read b 6)
@@ -23,4 +31,6 @@
   (read d 16)
   (read e 10)
 
+
 )
+

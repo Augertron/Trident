@@ -905,8 +905,7 @@ public class InstructionList extends HashMap
       else*/
         latency = inst.getRunLength();
 	
-      if(_packNicht && latency<1)
-        latency=1;
+      if(!GlobalOptions.packInstructions && latency < 1) latency=1;
       
       _runlength = latency;
       
@@ -1028,12 +1027,7 @@ public class InstructionList extends HashMap
   instructions are added to the list.
   */
   private float _maxRunTime = 0;
-  /**
-  nonpipelined instructions are by default packed into a single clock cycle when
-  possible, but the user can request that they be executed in separate cycles. 
-  This private variable is a flag informing the scheduler what is desired.
-  */
-  private boolean _packNicht = GlobalOptions.doNotPackInstrucs;
+
   /**
   this points the hardware description class instatiation
   */

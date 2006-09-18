@@ -53,7 +53,9 @@ public class HyperBlockList extends HashMap {
       add(saveMergeInfo);
     }
     /**
-    These methods are actually misnamed because this is actually a FIFO and not a stack..
+    These pushes and pop methods are actually misnamed because this is actually 
+    a FIFO and not a stack..I just don't know what the names are for the 
+    equivalent instructions in a FIFO.
     */
     public boolean pop(BlockGraph graph) {
       if(size() == 0) //when all merges have been performed return false
@@ -133,7 +135,7 @@ public class HyperBlockList extends HashMap {
     }
     
   }
-  
+    
   public BlockNode findNode(Instruction inst, BlockNode root) {
     HyperBlockListData newHyperBlock = ((HyperBlockListData)super.get(root));
     if(newHyperBlock.inst2NodeMap.containsKey(inst))
@@ -356,6 +358,15 @@ public class HyperBlockList extends HashMap {
   
   }
   
+  public boolean containsNode(BlockNode root, BlockNode node) {
+    HyperBlockListData newHyperBlock = ((HyperBlockListData)super.get(root));
+    if(newHyperBlock != null)
+      return newHyperBlock.nodeSet.contains(node);
+    else {
+      return false;
+    }
+  }
+  
   public HashSet getNodeSet(BlockNode root) {
     HyperBlockListData newHyperBlock = ((HyperBlockListData)super.get(root));
     if(newHyperBlock != null)
@@ -472,7 +483,10 @@ public class HyperBlockList extends HashMap {
   
   /**
   This method lets me put together in one place all the tasks necessary to 
-  save the fact that two nodes have been merged serially.
+  save the fact that two nodes have been merged serially.  Note: it is not
+  actually merging the blocks--it is only saving the fact that they need
+  to be merged serially (or cereally if you're hungry and it's time for 
+  breakfast).
   */
   public void mergeSerial(BlockNode root, BlockNode node, BlockEdge mergeEdge) {
   
@@ -531,7 +545,8 @@ public class HyperBlockList extends HashMap {
     saveOutEdges(root, outEdges); //this overwrites what was there before
     
     //if we've merged root with a hyperblock, we need to delete the second hyperblock
-    killNode(node);
+    killNode(node); //this isn't killing the node from the graph, but rather
+                    //from a list of nodes we must consider.
   }
   
   /**
@@ -665,7 +680,9 @@ public class HyperBlockList extends HashMap {
   }  
   /**
   This method lets me put together in one place all the tasks necessary to 
-  save the fact that two nodes have been merged parallel.
+  save the fact that two nodes have been merged parallel.  Note: it is not
+  actually merging the blocks--it is only saving the fact that they need
+  to be merged parallely.
   */
   public void mergeParallel(BlockNode node1, BlockNode node2) {
   
@@ -719,7 +736,8 @@ public class HyperBlockList extends HashMap {
     saveOutEdges(node1, outEdges); //this overwrites what was there before
     
     //if we've merged node1 with a hyperblock, we need to delete the second hyperblock
-    killNode(node2);
+    killNode(node2); //this isn't killing the node from the graph, but rather
+                     //from a list of nodes we must consider.
   }
   
   /**

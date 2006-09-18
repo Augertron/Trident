@@ -14,6 +14,8 @@ public class Chip extends Base {
   public float area_min = 0;
   public int area = -1;
   public int address = -1;
+  public int addressable_size = -1;
+
   public ArrayList resource;  	// list of Resource objects if chip is FPGA
   public Class resourceClass = Resource.class;
 

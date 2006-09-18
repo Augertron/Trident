@@ -164,6 +164,10 @@ public class Compile {
     pm.add(new CalcDefUseHash(pm));
     //NOTE:  uncomment the following pass when ConvertGepInst gets uncommented
     pm.add(new ConstantMath(pm));
+    // these are to clean up the mess...
+    pm.add(new GlobalDeadCode(pm)); 
+    pm.add(new CSERemoval(pm));
+    pm.add(new CalcDefUseHash(pm));
 
     pm.add(new AnalyzeLogicSpaceConstraintsPass(pm));
 
@@ -233,11 +237,15 @@ public class Compile {
     if(!GlobalOptions.noModSched) 
       pm.add(new ModuloSchedulePass(pm, opSel));*/
 
+    // why isn't the cycle count set by the scheduler pass?
     pm.add(new GenSchedulerStats(pm));
+    // this needs cycle count...
+
     //pm.add(new PrintDataFlow(pm, _input_file + "_dataflow_sched_", true));
     
     // this should be command-line controlled.
     pm.add(new PrintGraph(pm));
+    pm.add(new CheckPrimalWrites(pm));
 
     // So, at the end of the pass manager we either create VHDL as the final
     // pass or we pass the block graph onto something that will do that.
@@ -259,6 +267,7 @@ public class Compile {
     pm.run(bg);
 
   }
+
   private OperationSelection getOperationSelection(PassManager pm) {
     OperationSelection opSel = null;
     
@@ -416,6 +425,11 @@ public class Compile {
     System.err.println("	    allocating all arrays to the slowest  ");
     System.err.println("	    memory before the first preschedule");
     System.err.println("	    and allocation attempt.");
+    System.err.println("	--packArrays ");
+    System.err.println("	    This option tells the compiler to attempt");
+    System.err.println("	    to place arrays in the same memory word");
+    System.err.println("	    space.  This will only be done if all");
+    System.err.println("	    accesses to both memories are the same.");
   }
 
   final private void parseCmdLine(String args[]) {
@@ -434,7 +448,7 @@ public class Compile {
     GlobalOptions.functionName = args[args.length - 1];
 
     String arg;
-    LongOpt[] longopts = new LongOpt[18];
+    LongOpt[] longopts = new LongOpt[19];
     StringBuffer sb = new StringBuffer();
     longopts[0] = new LongOpt("nomod", LongOpt.NO_ARGUMENT, 
                                null, 0);
@@ -473,6 +487,9 @@ public class Compile {
     longopts[17] = new LongOpt("useSlowestMem", LongOpt.NO_ARGUMENT, 
 			       null, 16);
 
+    longopts[18] = new LongOpt("packArrays", LongOpt.NO_ARGUMENT, 
+			       null, 17);
+
     //Getopt g = new Getopt("Trident", args, "h:t:s:npb::");
     Getopt g = new Getopt("Trident", args, "-a:ht:l:s:b;", longopts);
     //g.setOpterr(false);    
@@ -502,7 +519,12 @@ public class Compile {
 	  break;
 
 	case 'b':
-	  GlobalOptions.makeTestBench = true;
+	  if (GlobalOptions.buildTop) {
+	    System.err.println("top-level insertion and testbench building are mutually exclusive.");
+	    GlobalOptions.makeTestBench = false;
+	  } else {
+	    GlobalOptions.makeTestBench = true;
+	  }
 	  break;
 
 	case 'h':
@@ -572,10 +594,10 @@ public class Compile {
 	    GlobalOptions.scheduleSelect = GlobalOptions.ALAPSchedSelect;
 	  else if(schedOpt.equalsIgnoreCase("fd"))
 	    GlobalOptions.scheduleSelect = GlobalOptions.FDSchedSelect;
-	  else if(schedOpt.equalsIgnoreCase("nomod"))
-	    GlobalOptions.noModSched = true;
-	  else if(schedOpt.equalsIgnoreCase("mod")) //these two lines
-	    GlobalOptions.noModSched = false;       //are normally not here, 
+	  else if(schedOpt.equalsIgnoreCase("mod"))
+	    GlobalOptions.modSched = true;
+	  else if(schedOpt.equalsIgnoreCase("nomod")) //these two lines
+	    GlobalOptions.modSched = false;       //are normally not here, 
 	  //this is the default
 	  else if(!schedOpt.equalsIgnoreCase("mod")) {
 	    System.out.println("error, invalid schedule selection");
@@ -592,9 +614,9 @@ public class Compile {
 	  schedOpt = schedOpt.trim();
 	  int scheduleSelect = 0;
 	  if(schedOpt.equalsIgnoreCase("considerpreds"))
-	    GlobalOptions.doNotIgnorePreds = true;
+	    GlobalOptions.ignorePreds = false;
 	  else if(schedOpt.equalsIgnoreCase("dontpack"))
-	    GlobalOptions.doNotPackInstrucs = true;
+	    GlobalOptions.packInstructions = false;
 	  else if(schedOpt.equalsIgnoreCase("conserve_area"))
 	    GlobalOptions.conserveArea = true;
 	  else {
@@ -605,11 +627,11 @@ public class Compile {
 	break;
 	
       case 9:
-	GlobalOptions.doNotIgnorePreds = true;
+	GlobalOptions.ignorePreds = false;
 	break;
 	
       case 10:
-	GlobalOptions.doNotPackInstrucs = false;
+	GlobalOptions.packInstructions = true;
 	break;
 	
       case 11:
@@ -618,10 +640,21 @@ public class Compile {
 	
       case 12:
 	GlobalOptions.buildTop = true;
+	if (GlobalOptions.makeTestBench) {
+	  System.err.println("top-level insertion and testbench"
+			     +" building are mutually exclusive.");
+	  GlobalOptions.makeTestBench = false;
+	}
 	break;
 	
       case 13:
-	GlobalOptions.makeTestBench = true;
+	if (GlobalOptions.buildTop) {
+	  System.err.println("top-level insertion and testbench"
+			     +" building are mutually exclusive.");
+	  GlobalOptions.makeTestBench = false;
+	} else {
+	  GlobalOptions.makeTestBench = true;
+	}
 	break;
 	
       case 14:
@@ -639,6 +672,10 @@ public class Compile {
 
       case 17:
 	GlobalOptions.slowestMem = true;
+	break;
+
+      case 18:
+	GlobalOptions.packArrays = true;
 	break;
 
       default:

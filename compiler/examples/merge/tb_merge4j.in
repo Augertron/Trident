@@ -1,11 +1,12 @@
 (fabric.in tb_merge4j
-  # This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
+  ; This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
 
 
   (write .reset 1)
   (wait .reset 10)
 
   (write c 12)
+  (wait)
   (read c 12)
 
   (write .start 1)
@@ -16,6 +17,7 @@
 
   # next test
   (write c 0)
+  (wait)
   (read c 0)
 
   (write .start 1)

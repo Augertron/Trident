@@ -117,6 +117,7 @@ public class TopLevelCircuitGenerator extends GenericCircuitGenerator implements
     System.out.println("DATA_WIDTH "+mem_width);
     System.out.println("MEM_READ_DELAY "+mem_read_delay);
     */
+
     // what about write?
 
     
@@ -131,7 +132,6 @@ public class TopLevelCircuitGenerator extends GenericCircuitGenerator implements
     DesignCircuitGenerator design =  
       new DesignCircuitGenerator(_target, "design_run", _circuit, reg_list, mem_list);
     design.generate(graph);
-
 
     // Generate register bus connections/logic.
     // should need this now.

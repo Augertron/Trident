@@ -16,6 +16,7 @@ public class Range implements VHDLout {
 
   public static final String TO = "to";
   public static final String DOWNTO = "downto";
+  public static final String INDEX = "index";
 
 
   public Range(Object a, String direction, Object b) {
@@ -31,6 +32,8 @@ public class Range implements VHDLout {
   public static String direction(int start, int stop) {
     if (start > stop) {
       return DOWNTO;
+    } else if (start ==stop) {
+      return INDEX;
     } else {
       return TO;
     }
@@ -39,8 +42,10 @@ public class Range implements VHDLout {
   public StringBuffer toVHDL(StringBuffer s, String pre) {
     s.append(pre);
     _a.toVHDL(s,"");
-    s.append(" ").append(_direction).append(" ");
-    _b.toVHDL(s,"");
+    if (_direction != INDEX) {
+      s.append(" ").append(_direction).append(" ");
+      _b.toVHDL(s,"");
+    }
     return s;
   }
 

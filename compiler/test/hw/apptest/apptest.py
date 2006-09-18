@@ -52,6 +52,7 @@ class ExecTest(Test):
     def __init__(self, name, top, design, dir, options={}, debug=None):
         Test.__init__(self, name)
         self.top = top
+        self.tb = None
         
         self.setDesign(design)
         self.setTestbench()
@@ -203,8 +204,19 @@ def initDesign(grep):
 def initTestbench(grep):
     global TB_LIST
     TB_LIST = []
+    # hmm... the grep list could have /path/path/elements and .c
+    # We are looking for /path/path/[tb_]name[.in] with no .c
 
-    os.path.walk('examples', visit_tb, (TB_LIST, grep))
+    #grep_name = os.path.basename(grep)
+    # find the name .. this will probably make more tb than necessary...
+    # or should we not grep at all.  If we can find bob, when running all the
+    # tests, why shouldn't we be able to find bob, when we are just doing
+    # bob.
+    #name, ext = os.path.splitext(grep_name)
+
+    localgrep = None
+
+    os.path.walk('examples', visit_tb, (TB_LIST, localgrep))
 
 
 
@@ -295,9 +307,15 @@ class ExecTCC(ExecTest):
         if not os.path.exists(dir): 
             os.makedirs(dir)
         shutil.copy(self.design,dir)
+
+        #print "self.tb ",self.tb
+        #print "options ",options
+        
         if self.tb:
             shutil.copy(self.tb, dir)
-            options+=" -b --bench_input=_%s" % self.tb_base
+            options+=" -b --bench_input=%s" % self.tb_base
+
+        #print "options ",options            
 
         os.chdir(dir)
         
@@ -306,7 +324,9 @@ class ExecTCC(ExecTest):
 
         my_options = self.getOption("tcc")
         if my_options:
-            options = my_options
+            options += " "+my_options
+
+        #print "options ",options
 
         #Search for testbench files
 
@@ -324,6 +344,8 @@ class ExecVCOM(ExecTest):
     def __init__(self, top, design, dir, libs, options={}, debug=None):
         ExecTest.__init__(self, "ExecVCOM", top, design, dir, options, debug)
         self.libs = libs
+
+        #self.setTestbench()
         
         self.setLog(self.design_noc+".vhd")
 
@@ -416,6 +438,8 @@ class ExecVSIM(ExecTest):
     def __init__(self, top, design, dir, libs, options={}, debug=None):
         ExecTest.__init__(self, "ExecVSIM", top, design, dir, options, debug)
         self.libs = libs
+
+        #self.setTestbench()
         
         self.setLog(self.design_noc+".sim")
 
@@ -450,22 +474,27 @@ class ExecVSIM(ExecTest):
             #
             os.chdir(cwd)
             raise MissingException("generated vhdl",self.design);
-                        
-        design_tb = "tb_%s.vhd" % self.design_noc
-        if not os.path.isfile("%s/%s" % (self.design_dir, design_tb)):
-            #print "Cannot find test bench ..."
-            f=open(os.path.join(dir,vsim_out),"w")
-            f.write("Cannot find testbench.")
-            f.close()
-            os.chdir(cwd)
-            raise MissingException("testbench",self.design);
-            
-            self.result = 1
-            return self.result
 
-        #print " copy %s/%s to %s " % (self.design_dir, design_tb, dir)
-        shutil.copy("%s/%s" % (self.design_dir, design_tb), dir)
+        design_tb = "tb_%s.vhd" % self.design_noc
         
+        if not os.path.isfile("%s/%s" % (self.design_dir, design_tb)):
+            # Cannot find hand written test bench ..."
+            if not os.path.isfile("%s/%s" % (dir, design_tb)):
+                # okay the tb is not here yet.
+                f=open(os.path.join(dir,vsim_out),"w")
+                f.write("Cannot find %s testbench, generated or otherwise." % design_tb)
+                f.close()
+                os.chdir(cwd)
+                raise MissingException("VHDL testbench, generated or otherwise for",self.design)
+                self.result = 1
+                return self.result
+
+            #print " copy %s/%s to %s " % (self.design_dir, design_tb, dir)
+            # copy only if non-gen.
+        else:
+            # overwrite the generated one
+            shutil.copy("%s/%s" % (self.design_dir, design_tb), dir)
+            
         os.chdir(dir)
         self.clearLog()
         
@@ -483,6 +512,7 @@ class ExecVSIM(ExecTest):
         cmd = "vcom %s tb_%s.vhd %s " % \
               (options, self.design_noc, self.log)
         self.result = self.system(cmd)
+        
         if (self.result != 0):
             os.chdir(cwd)
             raise CompilationException("failed",self.design)
@@ -544,6 +574,8 @@ class ExecSetupXD1(ExecTest):
     def __init__(self, top, design, dir, libs, options={}, debug=None):
         ExecTest.__init__(self, "ExecSetupXD1", top, design, dir, options, debug)
         self.libs = libs
+
+        #self.setTestbench()
         
         self.setLog(self.design_noc+".vhd")
 
@@ -623,7 +655,7 @@ class ExecSetupXD1(ExecTest):
             f.write("Cannot find fabric.in for file.")
             f.close()
             os.chdir(cwd)
-            raise MissingException("fabric.in",self.design);
+            raise MissingException("fabric.in",self.design)
             self.result = 1
             return self.result
         # copy fabric.in
@@ -649,6 +681,9 @@ class ExecSetupXD1(ExecTest):
         if os.path.isfile("fabric.in"):
             shutil.copy("fabric.in","template/sim/tc_01")
         else:
+            f=open(os.path.join(dir,vsim_out),"w")
+            f.write("Cannot generate fabric.in from tb_*.in.")
+            f.close()
             os.chdir(cwd)
             raise MissingException("fabric.in",self.design)
             self.result = -1

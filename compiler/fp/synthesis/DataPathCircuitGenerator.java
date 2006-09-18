@@ -107,8 +107,11 @@ public final class DataPathCircuitGenerator extends DesignCircuitGenerator {
    * This method creates a mux, which is used to control the data flowing 
    * out of the datapath/block. It also creates an outport from the datapath
    * to the block level for the write enable logic.
+   * 
+   * This is only used in array loads and stores...
    */
-  private String makeMuxLogic(Circuit dp, Instruction inst, BlockNode bn, 
+  private String makeMuxLogic(Circuit dp, Instruction inst, 
+			      String blkEn, BlockNode bn, 
 			      boolean isAddress) {
     int startCycle = inst.getExecClkCnt();
     //int width = inst.type().getWidth();
@@ -138,7 +141,7 @@ public final class DataPathCircuitGenerator extends DesignCircuitGenerator {
       en = zeroOut;
     } else {
       // Otherwise, predicate is not yet known; so make some logic...
-      String predName = makePredicateLogic(dp, pred, inst.getExecClkCnt(), bn);
+      String predName = makePredicateLogic(dp, pred, startCycle, bn);
       LinkedList inputs = new LinkedList();
       if(predName != null) {
 	// Only add the predicate input if the predicate has been
@@ -175,7 +178,8 @@ public final class DataPathCircuitGenerator extends DesignCircuitGenerator {
     }
     //System.out.println("mux operand:  "+operand);
     String name = operand.getFullName();
-    String blkEn = name+"_we";
+
+    //String blkEn = block.getUniqueWireName(name)+"_we";
     insertOutPort(dp, en, "o_"+blkEn, blkEn, 1);
 
     // Make a zero (invalid) output.
@@ -204,8 +208,14 @@ public final class DataPathCircuitGenerator extends DesignCircuitGenerator {
     return muxOut;
   }
   
-  private String makeDataMuxLogic(Circuit dp, Instruction inst, BlockNode bn) {
-    return makeMuxLogic(dp, inst, bn, false);
+  /*
+    This is currently only used by caseStore ...
+
+  */
+
+  private String makeDataMuxLogic(Circuit dp, Instruction inst, 
+				  String blkEn, BlockNode bn) {
+    return makeMuxLogic(dp, inst, blkEn, bn, false);
   }
 
 
@@ -219,14 +229,17 @@ public final class DataPathCircuitGenerator extends DesignCircuitGenerator {
     Circuit block = dpCircuit.getParent();
     Circuit top = block.getParent();
     Operand arrayOp = ALoad.getPrimalSource(inst);
+    Operand addrOp = ALoad.getAddrSource(inst);
 
     // Create the guard logic for writing the address to the membus.
-    String addrOut = makeMuxLogic(dpCircuit, inst, bn, true);
+    String addrEn = block.getUniqueWireName(addrOp.getFullName()) + "_we";
+    String addrOut = makeMuxLogic(dpCircuit, inst, addrEn, bn, true);
 
     // Connect the address block in the datapath to the memory bus' 
     // address read port (actually just make ports/wires up to the 
     // top level).
-    Operand addrOp = ALoad.getAddrSource(inst);
+
+    // this mixing of wires and names is not good ...
     String topUnique = top.getUniqueName();
     String topAddrWire = arrayOp.getFullName()+topUnique;
 
@@ -245,7 +258,8 @@ public final class DataPathCircuitGenerator extends DesignCircuitGenerator {
     block.insertOutPort(portIn, 
 			"o_"+addrOp.getFullName()+block.getUniqueName(), 
 			topAddrWire, addrWidth);
-    String addrWe = addrOp.getFullName()+"_we";
+    //String addrWe = addrOp.getFullName()+"_we";
+    String addrWe = addrEn; 
     Port p = block.getPortByName("o_"+addrWe);
     block.insertOutPort(addrWe,"o_"+addrWe+block.getUniqueName(), topAddrWire+"_we", 1);
 
@@ -274,19 +288,24 @@ public final class DataPathCircuitGenerator extends DesignCircuitGenerator {
 			  BlockNode bn, ChipDef chipInfo) {
     Circuit block = dpCircuit.getParent();
     Circuit top = block.getParent();
+    Operand addrOp = AStore.getAddrDestination(inst);
+    Operand arrayOp = AStore.getPrimalDestination(inst);
+
+    String addrEn = block.getUniqueWireName(arrayOp.getFullName())+"_we";
 
     // Create the guard logic for writing the address to the memory interface.
-    String addrOut = makeMuxLogic(dpCircuit, inst, bn, true);
+    String addrOut = makeMuxLogic(dpCircuit, inst, addrEn, bn, true);
+
 
     // Create the guard logic for writing the data to the memory interface.
-    String dataOut = makeMuxLogic(dpCircuit, inst, bn, false);
+    String dataOut = makeMuxLogic(dpCircuit, inst, addrEn, bn, false);
+
     int dataWidth = inst.type().getWidth();
     String extendOut = dataOut+"_ext";
     insertZeroExtend(block, "zextend_"+dataOut, dataOut, extendOut, 
 		     dataWidth, MemoryInterfaceGenerator.DATA_WIDTH);
 
     // Connect the address in the datapath to the memory interface.
-    Operand addrOp = AStore.getAddrDestination(inst);
     String topAddrWire = addrOp.getFullName()+top.getUniqueName();
     int memWidth = MemoryInterfaceGenerator.ADDR_WIDTH;
     String portIn = null;
@@ -302,13 +321,13 @@ public final class DataPathCircuitGenerator extends DesignCircuitGenerator {
 			topAddrWire, MemoryInterfaceGenerator.ADDR_WIDTH);
 
     // Connect the data in the datapath to the memory interface.
-    Operand arrayOp = AStore.getPrimalDestination(inst);
     String topDataWire = arrayOp.getFullName()+top.getUniqueName();
+
     block.insertOutPort(extendOut, 
 			"o_"+arrayOp.getFullName()+block.getUniqueName(),
 			topDataWire, MemoryInterfaceGenerator.DATA_WIDTH);
     String we = topDataWire+"_we";
-    block.insertOutPort(arrayOp.getFullName()+"_we", "o_"+we, we, 1);
+    block.insertOutPort(addrEn, "o_"+we, we, 1);
 
     // Add this memory access to the memory interface data structures.
     String blkName = bn.getLabel().getFullName();
@@ -560,6 +579,14 @@ public final class DataPathCircuitGenerator extends DesignCircuitGenerator {
       insertBuf(dpCircuit, 
 		"buf_"+inst.operator+dpCircuit.getUniqueName(), 
 		in1, out, inst.type().getWidth());
+
+    } else if (source1 == source2) {
+      System.out.println("WARNING: mux with identical inputs");
+       // Create a buffer with the 1st input.
+      String in0 = getOpName(dpCircuit, inst, source1, false, bn);
+      insertBuf(dpCircuit, 
+		"buf_"+inst.operator+dpCircuit.getUniqueName(), 
+		in0, out, inst.type().getWidth());
     } else {
       // Create a mux because the conditional isn't known yet...
       String in0 = getOpName(dpCircuit, inst, source2, false, bn);
@@ -592,13 +619,18 @@ public final class DataPathCircuitGenerator extends DesignCircuitGenerator {
       return;
     }
 
-    String dataOut = makeDataMuxLogic(dpCircuit, inst, bn);
+    // jt -- ugh
+
+    // In this case there should only be one.
+    String blkEn = inst.getOperand(0).getFullName()+"_we"; 
+    
+    String dataOut = makeDataMuxLogic(dpCircuit, inst, blkEn, bn);
 
     // Save the mux output and write enable to connect to outports later.  
     // The write enable wire is just the mux_out string plus "_en" added 
     // to the end.  The mux output and write enable will be added at the 
     // same time, so only one element needs to be added to the hashmap.  
-    String blkEn = inst.getOperand(0).getFullName()+"_we";
+
     ConnectionPair predAndWidth = new ConnectionPair(blkEn, 
 						     inst.type().getWidth());
     _blockOutWires.put(dataOut, predAndWidth);

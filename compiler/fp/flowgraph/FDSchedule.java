@@ -22,7 +22,7 @@ public class FDSchedule extends Schedule
   private  _Conns _connectionCalculator = new _Conns();
   private  OwnRanNumGen ranNum; 
   
-  public FDSchedule(DependenceFlowGraph dfg) {
+  /*public FDSchedule(DependenceFlowGraph dfg) {
     super(false, null);
     _dfg = dfg;
     ranNum = new OwnRanNumGen((int)System.currentTimeMillis());
@@ -31,9 +31,9 @@ public class FDSchedule extends Schedule
     super(packNicht, null);
     _dfg = dfg;
     ranNum = new OwnRanNumGen((int)System.currentTimeMillis());
-  }
-  public FDSchedule(DependenceFlowGraph dfg, boolean packNicht, BlockNode node) {
-    super(packNicht, node);    
+  }*/
+  public FDSchedule(DependenceFlowGraph dfg, BlockNode node) {
+    super(node);    
     _dfg = dfg;
     ranNum = new OwnRanNumGen((int)System.currentTimeMillis());
   }
@@ -139,7 +139,27 @@ public class FDSchedule extends Schedule
       setweight(instr.getoperator, n_int, += 1/(max + instruction exec time - min)
    
    
-  */  
+  */
+  
+  private class Randomator extends Random {
+  
+    public Randomator() {
+      super();
+    }
+    public Randomator(long seed) {
+      super(seed);
+    }
+    public double nextDouble() {
+      return (double)ranNum.ran2();
+      //return (double)ranNum.gaussRan();
+    }
+    public float nextFloat() {
+      return ranNum.ran2();
+      //return ranNum.gaussRan();
+    }
+  
+  }
+    
   /** This method performs a force-directed schedule of the list of instructions
    *  saved in @param instrlist.  It can ignore instruction predicates and 
    *  schedule operations to be executed regardless of whether the predicate is 
@@ -175,13 +195,18 @@ public class FDSchedule extends Schedule
     
     //Step 2)
     //here is where actual scheduling is done.  this can be divided into three substeps
-    Random ranNum2 = new Random(System.currentTimeMillis());
+    //Random ranNum2 = new Random(System.currentTimeMillis());
+    Random ranNum2 = (Random)new Randomator(System.currentTimeMillis());
     ArrayList instrucListCopy = new ArrayList(instrlist);
     while(0 < instrucListCopy.size()){
       Collections.shuffle(instrucListCopy, ranNum2);
       //instrucListCopy = orderInstructsForFD(instrucListCopy);
-      //find the guy with the smallest window:
+      
+      //find the guy with the smallest window:      
       Instruction instr = windowMap.findInstWithMinWin(instrucListCopy);    
+      //find random instruction (this is much slower since the windows are bigger):
+      //Instruction instr = (Instruction)instrucListCopy.iterator().next();    
+     
      //remove him from the list so he won't be scheduled again
       instrucListCopy.remove(instr);
       
@@ -200,15 +225,17 @@ public class FDSchedule extends Schedule
                                            instrlist, useLists, defLists);
 
 
-      if(smallestLoc == -1) {
+      if(smallestLoc == -1/*||
+    	 (!chipDef.analyzeHardwareUse(_node, instr, (int)smallestLoc))*/) {
         System.out.println("failed on instr "+ instr);
         //System.out.println("smallestLoc "+ smallestLoc);
     	return false;
       }
-      if(smallestLoc != -1) {
+      else {
+      /*if((smallestLoc != -1)/*&&
+    	 (chipDef.analyzeHardwareUse(instr, (int)smallestLoc))) {*/
     	  
-        chipDef.saveNewHardwareUsage(instr, (int)smallestLoc);
-    	
+        chipDef.saveNewHardwareUsage(_node, instr, (int)smallestLoc);
     	 
         //set the execution and clock times 
     	instr.setExecTime(smallestLoc);
@@ -227,13 +254,13 @@ public class FDSchedule extends Schedule
         		        smallestLoc + getInstrRunLength(instr, chipDef) /*+
 				          (1/_schedCycleFraction)*/, 
         		        chipDef)) {
-        System.out.println("set window sucs");
+          System.out.println("set window sucs");
 	  return false;	
     	}
 	//setWindowPredecessors(inst, n_int + instruction execution time)
     	if(!setWindowPredecessors(instrlist, instr, useLists, defLists, windowMap, 
         		          smallestLoc /*- (1/_schedCycleFraction)*/, chipDef)) {
-        System.out.println("set window preds");
+          System.out.println("set window preds");
 	  return false;	  
         }
     	//change weights:
@@ -241,6 +268,7 @@ public class FDSchedule extends Schedule
     	
 
       } 
+      //return false;
        
     }//end foreach instruction
     
@@ -522,17 +550,18 @@ public class FDSchedule extends Schedule
 	    //                             "e-Directed" + " Schedule");
 	    
 	  if(execTime > windowMap.getMax(instr)) {
-	    //System.out.println("instr " + instr);
-	    //System.out.println("execTime " + execTime);
-	    //System.out.println("windowMap.getMax(instr) " + windowMap.getMax(instr));
-	    //System.out.println("windowMap.getMin(instr) " + windowMap.getMin(instr));
+	   /* System.out.println("failed setWindowSuccessors on instr " + instr);
+	    System.out.println("execTime " + execTime);
+	    System.out.println("windowMap.getMax(instr) " + windowMap.getMax(instr));
+	    System.out.println("windowMap.getMin(instr) " + windowMap.getMin(instr));*/
 	    return false;
 	  }
 	  windowMap.putMin(instr, execTime);
-  	  setWindowSuccessors(instrlist, instr, useLists, defLists, windowMap, 
-        		      execTime + getInstrRunLength(instr, chipDef) /*+
+  	  if(!setWindowSuccessors(instrlist, instr, useLists, defLists, windowMap, 
+        		          execTime + getInstrRunLength(instr, chipDef) /*+
 			           (1/_schedCycleFraction)*/, 
-        		      chipDef);
+            		          chipDef))
+            return false;
   	}
   	 
       }
@@ -595,20 +624,26 @@ public class FDSchedule extends Schedule
 	  //setwindow(sucessor, oldmin, n_int + instruction execution time)
           float execTimeNew = execTime - getInstrRunLength(instr, chipDef) /*-
 	                      (1/_schedCycleFraction)*/;
-          CorrectStartTimes adjustTimes = new CorrectStartTimes(instr, chipDef,
-					                        GlobalOptions.doNotPackInstrucs);
+          CorrectStartTimes adjustTimes 
+	    = new CorrectStartTimes(instr, chipDef, !GlobalOptions.packInstructions);
+
 	  float correctedCycle = adjustTimes.getCorrectedStartTime(execTimeNew);
 	  if(correctedCycle > execTimeNew)
 	    correctedCycle--;
   	  if((execTimeNew < windowMap.getMin(instr))) {
+	    /*System.out.println("failed setWindowPredecessors on instr " + instr);
+	    System.out.println("execTime " + execTime);
+	    System.out.println("windowMap.getMax(instr) " + windowMap.getMax(instr));
+	    System.out.println("windowMap.getMin(instr) " + windowMap.getMin(instr));*/
             return false;
 	  }
           correctedCycle = ((float)Math.round(correctedCycle * _schedCycleFraction))/
 			    _schedCycleFraction;
 	  windowMap.putMax(instr, execTimeNew);
 	  //setWindowPredecessors(list, n_int + instruction execution time)
-  	  setWindowPredecessors(instrlist, instr, useLists, defLists, 
-        			windowMap, execTimeNew, chipDef);
+  	  if(!setWindowPredecessors(instrlist, instr, useLists, defLists, 
+        			    windowMap, execTimeNew, chipDef))
+	    return false;
   	}
       }
     } //end foreach
@@ -1124,26 +1159,67 @@ public class FDSchedule extends Schedule
     float cycle = 0;
     if(winSize == 0) {
       cycle = windowMap.getMin(instr);
-      if(chipDef.analyzeHardwareUse(instr, (int)cycle))
+	  /*System.out.println("fd instr " + instr);
+	  System.out.println("fd cycle " + cycle);
+	  System.out.println("fd windowMap.getMin(instr) " + windowMap.getMin(instr));
+	  System.out.println("fd windowMap.getMax(instr) " + windowMap.getMax(instr));*/
+      if(chipDef.analyzeHardwareUse(_node, instr, (int)cycle))
         smallestLoc = cycle;
+      else
+        return (float)-1.0;
     }
     else {
       int roundingFactor = (int)_schedCycleFraction;
       if(getInstrRunLength(instr, chipDef) > 1)
         roundingFactor = 1;
       float stoppingPoint = winSize * roundingFactor;
-      while(alreadyTried.size() < stoppingPoint) {
+      while(alreadyTried.size() <= stoppingPoint) {
 	cycle = 0;
 	float correctedCycle = 0;
 	do {
 	
           //cycle = (float)Math.random() * winSize + windowMap.getMin(instr);
           //System.out.println("ranNum.ran2() " + ranNum.ran2());
+	  //int tries=0;
+	  //boolean hardwareConflict = false;
+	  //boolean stop = false;
 	  do {
-	  cycle = ranNum.ran2() * winSize + windowMap.getMin(instr);
+	    cycle = ranNum.ran2() * winSize + windowMap.getMin(instr);
           //cycle = ranNum.nextFloat() * winSize + windowMap.getMin(instr);
             cycle = ((float)Math.round(cycle * roundingFactor))/roundingFactor;
-	  } while(alreadyTried.contains(new Float((double)cycle)));
+	    //if(tries>=winSize * roundingFactor)
+	      //return (float)-1.0;
+	    //tries++;
+	  /*System.out.println("fd instr " + instr);
+	  System.out.println("fd cycle " + cycle);
+	  System.out.println("fd windowMap.getMin(instr) " + windowMap.getMin(instr));
+	  System.out.println("fd windowMap.getMax(instr) " + windowMap.getMax(instr));*/
+	  //System.out.println("fd cycle " + cycle);
+	  //System.out.println("alreadyTried.contains(new Float((double)cycle)) " + alreadyTried.contains(new Float((double)cycle)));
+	    //hardwareConflict = !chipDef.analyzeHardwareUse(_node, instr, (int)cycle);
+	    /*if(hardwareConflict) {
+	      if(alreadyTried.size() > stoppingPoint)
+	        return (float)-1.0;
+	      else
+	        stop = false;
+	    }
+	    else if(alreadyTried.size() <= stoppingPoint)
+	      stop = false;
+	    else
+	      stop = true;*/
+	  //System.out.println("hardwareConflict " + hardwareConflict);
+	    /*if(hardwareConflict) {
+	      //stoppingPoint--;
+	      alreadyTried.add(new Float((double)cycle));
+	    }*/
+	  //System.out.println("stoppingPoint) " + stoppingPoint);
+	  //System.out.println("alreadyTried.size() " + alreadyTried.size());
+	  //System.out.println("alreadyTried " + alreadyTried);
+	  //}while(!stop);
+	  } while((alreadyTried.contains(new Float((double)cycle)))/*&&
+	           alreadyTried.size() <= stoppingPoint/*&&
+	          (hardwareConflict)*/);
+	  //if(alreadyTried.size() > stoppingPoint) return smallestLoc;
 	  alreadyTried.add(new Float((double)cycle));
 	  //System.out.println("instr " + instr);
 	  //System.out.println("windowMap.getMin(instr) " + windowMap.getMin(instr));
@@ -1154,7 +1230,7 @@ public class FDSchedule extends Schedule
 	  //if(((int)cycle) != ((int)(cycle + getInstrRunLength(instr, chipDef))))
 	  //   stoppingPoint--;
           CorrectStartTimes adjustTimes = new CorrectStartTimes(instr, chipDef,
-					                        GlobalOptions.doNotPackInstrucs);
+					                        !GlobalOptions.packInstructions);
 	  correctedCycle = adjustTimes.getCorrectedStartTime(cycle);
 	  //if(correctedCycle != cycle) {
 	  //  alreadyTried.add(new Float((double)cycle));
@@ -1166,20 +1242,22 @@ public class FDSchedule extends Schedule
 	  //}
 	  //System.err.println("alreadyTried.size() " + alreadyTried.size());
 	  //System.err.println("stoppingPoint " + stoppingPoint);
+        //System.err.println("in 2nd loop");
 
 	}while((//(alreadyTried.contains(new Float((double)cycle)))||
                //(cycle < winSize + windowMap.getMin(instr) ) &&
-	       (correctedCycle > windowMap.getMax(instr)) ||
+	       /*(correctedCycle > windowMap.getMax(instr)) ||
 	       (correctedCycle < windowMap.getMin(instr)) ||
-	       (!setWindowSuccessors(instrlist, instr, useLists, defLists, (FDWindows)windowMap.copy(), 
+	       */(!setWindowSuccessors(instrlist, instr, useLists, defLists, (FDWindows)windowMap.copy(), 
         		             correctedCycle + getInstrRunLength(instr, chipDef), chipDef)) ||
 	       (!setWindowPredecessors(instrlist, instr, useLists, defLists, windowMap.copy(), 
         		               correctedCycle, chipDef)))&&
-	       (alreadyTried.size() < stoppingPoint));//&&
+	       (alreadyTried.size() <= stoppingPoint));//&&
 	        	 //+ getInstrRunLength(instr, chipDef))&&
 	        //(((int)cycle) != ((int)(cycle + getInstrRunLength(instr, chipDef)))));
 	//alreadyTried.add(new Float((double)cycle));
 	cycle = correctedCycle;
+        //System.out.println("exited 2nd while loop");
 
         //CorrectStartTimes adjustTimes = new CorrectStartTimes(instr, chipDef,
 	//				                      GlobalOptions.doNotPackInstrucs);
@@ -1187,7 +1265,7 @@ public class FDSchedule extends Schedule
 	float forceAtTime = ((Float)force.get(forceTableIndex)).floatValue();
 
 	if((forceAtTime < smallestForce)&&
-    	   (chipDef.analyzeHardwareUse(instr, (int)cycle))) {
+    	   (chipDef.analyzeHardwareUse(_node, instr, (int)cycle))) {
 
           smallestForce = forceAtTime;
           smallestLoc = cycle;
@@ -1196,6 +1274,8 @@ public class FDSchedule extends Schedule
     }
     return smallestLoc;
   }
+  
+  public void seed(int seed) { ranNum.seed(seed);}
 
   private class OwnRanNumGen { 
     //this is copied and adapted from Numerical Recipes in C, Cambridge
@@ -1252,6 +1332,7 @@ public class FDSchedule extends Schedule
     }*/
 
   
+    private double standardDev = 0.75;
     private int idum2=123456789;
     private int iy=0;
     private int IM1 = 2147483563;
@@ -1317,6 +1398,14 @@ public class FDSchedule extends Schedule
       else return temp;
 
     }
+    
+    public float gaussRan() {
+    
+      double ranTmp = Math.log((double)ran2()*standardDev*Math.sqrt(2.0*Math.PI));
+      return (float)Math.sqrt(-2.0*standardDev*standardDev*ranTmp);
+    
+    }
+    
   }
 
 }

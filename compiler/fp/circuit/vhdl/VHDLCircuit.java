@@ -545,9 +545,7 @@ public class VHDLCircuit extends Circuit {
     design_file.addDesignUnit(du);
 
     Architecture a = makeTestBenchTop(du, c);
-
-    
-
+ 
     // duplicated from above
     SimpleName period = new SimpleName("PERIOD");
     /*
@@ -576,14 +574,25 @@ public class VHDLCircuit extends Circuit {
 					  new Waveform(VHDLConstant.genConstant(BigInteger.ZERO,
 										((Integer)widths.get(port_name)).intValue()))));
     }
+
+    a.addFooterComment("\b- @ asim -lib work tb_"+getName());   
+
     //if no command list is present, construct a default list
     if(fab == null) {
       addDummyCommands(p);
+      a.addFooterComment("\b- @ run 8000ns");
     }
     //else construct the testbench
     else {
       addCommands(p, fab, file_name);
+      if (fab.run != null) 
+	a.addFooterComment("\b- @ run "+fab.run.time+fab.run.unit);
+      else 
+	// sometimes there is no run command ...
+	a.addFooterComment("\b- @ run 8000ns");
     }
+
+    a.addFooterComment("\b- @ exit");
 
     DesignFile.write(design_file, file_name);
     
@@ -615,7 +624,9 @@ public class VHDLCircuit extends Circuit {
 	if (prev_c instanceof Write){
 	  System.err.println("WARNING: "+name.substring(0, name.length()-3)+"in contains a read directly after a write.");
 	  System.err.println("This will most likely cause the read to report failure during execution."); 
-	  System.err.println("Consider changing it so there is a wait between the two.\n"); 
+	  System.err.println("Consider changing it so there is a wait between the two.");
+	  System.err.println("A wait has been automatically placed for you.\n");
+	  addWait(p, null);
 	}
 	addRead(p, (Read)c, name);
       }
@@ -636,7 +647,8 @@ public class VHDLCircuit extends Circuit {
     SimpleName period = new SimpleName("PERIOD");
     String port_name = w.sector;
 
-    //This currently only takes the first element and ignores any others that might be there
+    //This currently only takes the first element and 
+    // ignores any others that might be there.
     //Right now, writing to arrays is not supported
     
     String wv = w.value[0].toString();
@@ -712,18 +724,23 @@ public class VHDLCircuit extends Circuit {
     //This appears in so many places that it makes sense to make it a constant somewhere someday
     SimpleName period = new SimpleName("PERIOD");
     
+    if(w == null) {
+      p.addStatement(new WaitStatement((Expression)null, new Expression(period)));
+      return;
+    } 
+
     String port_name = w.sector;
-    if(port_name.equals(".done")) {
+    if(port_name == null) {
+      p.addStatement(new WaitStatement((Expression)null, new Expression(period)));
+    } 
+    else if(port_name.equals(".done")) {
       p.addStatement(new WaitStatement(new Expression(new Eq((SimpleName)outputs.get(port_name), Char.ONE))));
       p.addStatement(new WaitStatement((Expression)null,new Expression(period)));
     }
     else if(port_name.equals(".reset")) {
       p.addStatement(new WaitStatement((Expression)null, new Expression(new Mult(period,new NumericLiteral(8)))));
     }
-    else
-      //I don't know how to handle other wait statements. Do they even exist? The info I was given is fuzzy on this matter
-      //There might be a future wait statement that goes between reads and writes 
-      ;
+
   }
     
   public static void main(String args[]) {

@@ -106,8 +106,8 @@ public class FDWindows extends HashMap
     return clone;
   
   }
-  public FDWindows clone() {
-  
+
+  public Object clone() {
     FDWindows clone = new FDWindows();
     for (Iterator it = this.keySet().iterator(); it.hasNext(); ) {
       Instruction inst = (Instruction)it.next();
@@ -123,6 +123,32 @@ public class FDWindows extends HashMap
     return clone;
   
   }
+
+  private HashMap inst2ASAPTime = new HashMap();
+  public void getASAPTimes(Instruction instr, ArrayList aSAPlist) {
+    int ASAPi = aSAPlist.indexOf(instr);
+    Instruction asapCopy = ((Instruction)(aSAPlist.get(ASAPi)));
+    float ASAPexectime = asapCopy.getExecTime();
+    inst2ASAPTime.put(instr, new Float(ASAPexectime));
+  }
+  
+  private HashMap inst2ALAPTime = new HashMap();
+  public void getALAPTimes(Instruction instr, ArrayList aLAPlist) {
+    int ALAPi = aLAPlist.indexOf(instr);
+    Instruction alapCopy = ((Instruction)(aLAPlist.get(ALAPi)));
+    float ALAPexectime = alapCopy.getExecTime();
+    inst2ALAPTime.put(instr, new Float(ALAPexectime));
+  }
+  
+  public void setMinMax(Instruction instr) {
+    float minTime, maxTime;
+    float ASAPexectime = ((Float)inst2ASAPTime.get(instr)).floatValue();
+    float ALAPexectime = ((Float)inst2ALAPTime.get(instr)).floatValue();
+    minTime = Math.min(ASAPexectime, ALAPexectime);
+    maxTime = Math.max(ASAPexectime, ALAPexectime);
+    _absMax = Math.max(_absMax, maxTime);
+    putWin(instr, maxTime, minTime);
+  }
   
   public void loadWinsFromALAPnASAPScheds(Instruction instr, 
                                            ArrayList aSAPlist,
@@ -131,8 +157,8 @@ public class FDWindows extends HashMap
     //foreach instruction
     float minTime, maxTime;
     //find the ASAP and ALAP execution times
-    //int ASAPi = aSAPlist.indexOf(instr);
-    int ASAPi = -1;
+    int ASAPi = aSAPlist.indexOf(instr);
+    /*int ASAPi = -1;
     for(int i = 0; i < aSAPlist.size();i++) {
       Instruction asapCopyOfInst = ((Instruction)(aSAPlist.get(i)));
       String asapCopyAsString = asapCopyOfInst.toString();
@@ -145,9 +171,9 @@ public class FDWindows extends HashMap
     	continue;
       }
        
-    }
-    //int ALAPi = aLAPlist.indexOf(instr);
-    int ALAPi = -1;
+    }*/
+    int ALAPi = aLAPlist.indexOf(instr);
+    /*int ALAPi = -1;
     for(int i = 0; i < aLAPlist.size();i++) {
       Instruction alapCopyOfInst = ((Instruction)(aLAPlist.get(i)));
       String alapCopyAsString = alapCopyOfInst.toString();
@@ -157,7 +183,7 @@ public class FDWindows extends HashMap
     	continue;
       }
        
-    }
+    }*/
     Instruction asapCopy = ((Instruction)(aSAPlist.get(ASAPi)));
     Instruction alapCopy = ((Instruction)(aLAPlist.get(ALAPi)));
     float ASAPexectime = asapCopy.getExecTime();
@@ -181,7 +207,15 @@ public class FDWindows extends HashMap
     for (Iterator itsTmp = instrList.iterator(); 
         itsTmp.hasNext(); ) {
       Instruction instTmp2 = (Instruction)itsTmp.next();
-      if(getWinSize(instTmp2) < minWin) {
+      if(instr==null) {instr = instTmp2; continue;}
+      boolean instrIsAInst = ALoad.conforms(instr)||AStore.conforms(instr);
+      boolean instTmp2IsAInst = ALoad.conforms(instTmp2)||
+                                AStore.conforms(instTmp2);
+      if((instTmp2IsAInst)&&(!instrIsAInst)) {
+    	//minWin = getWinSize(instTmp2);
+    	instr = instTmp2;
+      }
+      else if(getWinSize(instTmp2) < minWin) {
     	minWin = getWinSize(instTmp2);
     	instr = instTmp2;
       }

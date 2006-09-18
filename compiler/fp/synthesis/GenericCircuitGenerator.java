@@ -157,8 +157,10 @@ public abstract class GenericCircuitGenerator {
     if((in0 == null) || (in1 == null) || (sel == null))
       throw new SynthesisException("null input to mux!");
 
-    if(in0.equals(in1))
-      System.out.println("WARNING: mux data inputs are equal (inefficient)!");
+    if(in0.equals(in1)) {
+      new SynthesisException("ERROR: mux data inputs are equal (inefficient)"
+			     +" and it does not work!!!");
+    }
 
     // Add the inputs and outputs of the mux to the hashmap.
     map.put(in0, new PortTag( null, "in0", PortTag.IN, width));
@@ -184,8 +186,10 @@ public abstract class GenericCircuitGenerator {
       throw new SynthesisException("widthIn <= widthOut !!");
 
     int cWidth = 32;
-    String c0 = circuit.getUniqueWireName();
-    String c1 = circuit.getUniqueWireName();
+    // jt -- I had to add the prefix so we did not have name collisions
+    // somehow wer are not being unique like we should...
+    String c0 = circuit.getUniqueWireName("sconst");
+    String c1 = circuit.getUniqueWireName("sconst");
     circuit.insertConstant("c_"+r0, r0, c0, cWidth); //width?
     circuit.insertConstant("c_"+r1, r1, c1, cWidth); //width?
 
@@ -242,7 +246,10 @@ public abstract class GenericCircuitGenerator {
 
     } else {
 
-      String c0 = circuit.getUniqueWireName();
+      // jt -- this has a similar problem to that of above.  The
+      // odd thing is that this code looks right, so the bad code
+      // is probably somewhere else ...
+      String c0 = circuit.getUniqueWireName("zconst");
       circuit.insertConstant("c_0", BigInteger.ZERO, c0, diff);
       
       HashMap map = new HashMap();

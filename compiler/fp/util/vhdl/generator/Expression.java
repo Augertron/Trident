@@ -11,15 +11,17 @@ public class Expression extends CheckObject implements VHDLout, Operation {
   String _operator = NOP;
 
   static final Class[]  _classes = { 
-    Relation.class,
+    /*Relation.class,
     ShiftExpression.class,
     SimpleExpression.class, 
     Term.class, Factor.class, 
     Primary.class,
     Name.class,
     Expression.class,
-    Aggregate.class,
-    //    VHDLout.class // is that dangerous?
+    Aggregate.class, */
+    // the above array was not working out due to a loop 
+    // in the static initializer ...
+        VHDLout.class // is that dangerous?
   };
 
   public static final Expression ONE = new Expression(Char.ONE);

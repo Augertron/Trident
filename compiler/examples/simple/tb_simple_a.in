@@ -1,25 +1,43 @@
 (fabric.in tb_simple_a
-  # the leading "." means that the name is not explicit
-  # for start this is not exactly true, -- uh, where is 'done' mapped?
+  ; This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
+
+
   (write .reset 1)
   (wait .reset 10)
 
-  (write a 2.0)
-  (read a 2.0)
-  (write b -2.0)
-  (read b -2.0)
-	
+  (write a 0xc0a00000)
+  (wait)
+  (read a 0xc0a00000)
+  (write b 0x41000000)
+  (wait)
+  (read b 0x41000000)
+
   (write .start 1)
 
-  (wait .done 150)
-  # this could be an assertion too
-  # then we might need wait done all or something...
-  (read a 6.0)
-  (read b -2.0)
+  (wait .done 200)
 
-  (write b 100.0)
+  (read a 0x424ce666)
+  (wait)
+  (read b 0x41000000)
+  (wait)
+
+  # next test
+  (write a 0x40c00000)
+  (wait)
+  (read a 0x40c00000)
+  (write b 0x40e00000)
+  (wait)
+  (read b 0x40e00000)
+
   (write .start 1)
-  (wait .done 150)
-  # this is close, but probably not float precision.
-  (read a 10619.273438) 
+
+  (wait .done 200)
+
+  (read a 0x42f9f3cf)
+  (wait)
+  (read b 0x40e00000)
+  (wait)
+
+
 )
+

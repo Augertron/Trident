@@ -37,9 +37,13 @@ public class GlobalOptions {
   public static final int ALAPSchedSelect = 2;
   public static final int FDSchedSelect = 3;
   public static int scheduleSelect = FDSchedSelect;
-  public static boolean noModSched = false;
-  public static boolean doNotIgnorePreds = false;
-  public static boolean doNotPackInstrucs = true;
+  public static boolean modSched = true;
+  public static boolean ignorePreds = true;
+  public static boolean packInstructions = true;
+
+  // array options
+  public static boolean packArrays = false;
+
   public static int maxAttemptsOnFDSched = 80;
   //number of tries for mod sched:
   public static float budgetRatio = (float)30.0;

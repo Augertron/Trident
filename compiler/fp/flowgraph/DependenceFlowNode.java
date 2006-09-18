@@ -133,19 +133,19 @@ public class DependenceFlowNode extends Node {
   /** 
    * Returns a set that only accepts DependenceFlowEdges
    */
+  private class BobTheSpecialHash extends HashSet {
+    public boolean add(Object o) {
+      if (! (o instanceof DependenceCntrlFlowEdge ||
+  	     o instanceof DependenceDataFlowEdge )) {
+  	throw new DependenceFlowException("Not a DependenceFlowEdge: " + o 
+        				  + " (" + o.getClass() + ")");
+      } // end of if ()
+      return super.add(o);
+    }
+  }
   protected Set newEdgeSet() {
-    return new HashSet() {
-      /** "@param o
-       */
-      public boolean add(Object o) {
-        if (! (o instanceof DependenceCntrlFlowEdge ||
-               o instanceof DependenceDataFlowEdge )) {
-          throw new DependenceFlowException("Not a DependenceFlowEdge: " + o 
-	                                    + " (" + o.getClass() + ")");
-        } // end of if ()
-        return super.add(o);
-      }
-    };
+    BobTheSpecialHash bob = new BobTheSpecialHash(); 
+    return bob;
   }
 
   private class NodeCarrier {

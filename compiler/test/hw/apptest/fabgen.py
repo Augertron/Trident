@@ -362,7 +362,9 @@ class SimpleFile:
               self.list.append(('read',name,value))
           elif tok == "wait":
               type, length = self.parseWait()
-              self.list.append(('wait',type,length))
+              if type:
+                  self.list.append(('wait',type,length))
+              # otherwise we ignore non-typed waits
           elif tok == "run":
               self.run = self.parseRun()
           else:
@@ -385,11 +387,15 @@ class SimpleFile:
     
     def parseWait(self):
         type = self.getToken()
-        time = self.getToken()
-        if time == self.END:
+        if type == self.END:
+            type = None
             time = 0
         else:
-            self.end()
+            time = self.getToken()
+            if time == self.END:
+                time = 0
+            else:
+                self.end()
         return type,time
 
     def parseRun(self):

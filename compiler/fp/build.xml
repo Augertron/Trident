@@ -31,7 +31,7 @@
   <target name="init">
     <!-- Create the time stamp -->
     <tstamp/>
-    <property name="build.compiler" value="jikes"/>
+    <property name="build.compiler" value="modern"/>
 
     <!-- Create the build directory structure used by compile -->
     <mkdir dir="${build}/fp"/>

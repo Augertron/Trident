@@ -388,7 +388,7 @@ public class BooleanEquation implements Truth {
     return new BooleanEquation(new_eq);
   }
 
-//I (Kris) made this public:
+//I (Kris) made this public.  If you disagree, you know where to find me:
  public LinkedList listBooleanOperands() {
     LinkedList result = new LinkedList();
     

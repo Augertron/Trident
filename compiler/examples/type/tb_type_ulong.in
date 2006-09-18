@@ -1,13 +1,15 @@
 (fabric.in tb_type_ulong
-  # This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
+  ; This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
 
 
   (write .reset 1)
   (wait .reset 10)
 
   (write a 4294967291)
+  (wait)
   (read a 4294967291)
   (write b 8)
+  (wait)
   (read b 8)
 
   (write .start 1)
@@ -19,8 +21,10 @@
 
   # next test
   (write a 6)
+  (wait)
   (read a 6)
   (write b 4294967282)
+  (wait)
   (read b 4294967282)
 
   (write .start 1)
@@ -32,8 +36,10 @@
 
   # next test
   (write a 22)
+  (wait)
   (read a 22)
   (write b 21)
+  (wait)
   (read b 21)
 
   (write .start 1)
@@ -45,8 +51,10 @@
 
   # next test
   (write a 4294967293)
+  (wait)
   (read a 4294967293)
   (write b 4294967291)
+  (wait)
   (read b 4294967291)
 
   (write .start 1)

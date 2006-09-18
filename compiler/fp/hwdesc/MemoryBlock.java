@@ -70,7 +70,7 @@ public class MemoryBlock extends Chip implements Memory {
   it will start at address 0, but be unable to pack with A.  Then it will place
   it after A, and decide this is good enough.  Then the algorithm will try to 
   place D.  It will start also in memory 1 and address 0.  But it cannot be 
-  packed with A, so it will go on to the whole after A.  D can be packed with,
+  packed with A, so it will go on to the hole after A.  D can be packed with,
   C however, so it will be placed there (after trying to place it in memory 2
   and finding that execution was slowed down).  After raising the pain 
   threshhold for D, packing it with C will give the optimal solution.  
@@ -406,6 +406,29 @@ public class MemoryBlock extends Chip implements Memory {
   
   }
   
+  public boolean isInSamePack(Operand arr1, Operand arr2) {
+    for (Iterator packIt = getVarGroupingsPtr().iterator(); 
+    	 packIt.hasNext(); ) {
+      HashSet pack = (HashSet)packIt.next();
+      if(!pack.iterator().hasNext()) continue;
+      if(pack.contains(arr1)&&pack.contains(arr2))
+        return true;
+    }
+    return false;
+  }
+  
+  public boolean isInSamePack(Operand arr1, HashSet otherArrays) {
+    for (Iterator packIt = otherArrays.iterator(); 
+    	 packIt.hasNext(); ) {
+      Operand arr2 = (Operand)packIt.next();
+      if(arr2==null) continue;
+      if(arr1==arr2) continue;
+      if(isInSamePack(arr1, arr2))
+        return true;
+    }
+    return false;
+  }
+  
   /**
   This method tests if there are no arrays at this location and it is thus
   ok to place an array here
@@ -458,10 +481,9 @@ public class MemoryBlock extends Chip implements Memory {
     	 stopIt.hasNext() && !locFound; ) {
       long time = ((Long)stopIt.next()).longValue();
       array.setStart(time+1);
-      if((_pseudoAddys.isThereSpaceInWordToPack(array, this))&&
-         (((!GlobalOptions.doNotPackInstrucs)&&
-	   (saveToPackedArrCollect(array, arrToArrInf)))||
-	  (noPackdArrAtLoc(array, arrToArrInf)))) {
+      if(_pseudoAddys.isThereSpaceInWordToPack(array, this) 
+	 && (( GlobalOptions.packArrays && saveToPackedArrCollect(array, arrToArrInf) )
+	     || noPackdArrAtLoc(array, arrToArrInf) )) {
 	_pseudoAddys.saveStop(array);
 	locFound = true;
       }
@@ -477,8 +499,8 @@ public class MemoryBlock extends Chip implements Memory {
     for (Iterator packIt = varGroupings.iterator(); 
     	 packIt.hasNext(); ) {
       HashSet pack = (HashSet)packIt.next();
-      if(((pack.size()<=1)&&(pack.contains(array.getVar())))||
-         (pack.size()<=1)) {
+      if(((pack.size()<=1)&&(pack.contains(array.getVar())))/*||
+         (pack.size()<=1)*/) {
 	getVarGroupingsPtr().remove(pack);
       }
       pack.remove(array.getVar());
@@ -487,15 +509,11 @@ public class MemoryBlock extends Chip implements Memory {
     for (Iterator packIt2 = getVarGroupingsPtr().iterator(); 
     	 packIt2.hasNext(); ) {
       HashSet pack = (HashSet)packIt2.next();
-      System.err.println("pack " + pack);
       if(pack.size()==0) {
 	varGroupings2.remove(pack);
-       System.err.println("pack after culling " + pack);
      }
     }
     setVarGroupingsPtr(varGroupings2);
-       System.err.println("list of packs after culling " + getVarGroupingsPtr());
-       System.err.println("list of packs after culling (calc) " + varGroupings2);
   }
   
   /**
@@ -509,16 +527,18 @@ public class MemoryBlock extends Chip implements Memory {
   }
   
   public int trueCost(BlockNode bNode, ArrayToArrayInfoMap arrToArrInf) {
-    return costGeneric(bNode, arrToArrInf, true);
+    return costGeneric(bNode, arrToArrInf, PortUsageSplitter.TRUECOST);
   }
   public int cost(BlockNode bNode, ArrayToArrayInfoMap arrToArrInf) {
-    return costGeneric(bNode, arrToArrInf, false);
+    return costGeneric(bNode, arrToArrInf, PortUsageSplitter.NORMCOST);
   }
   private int costGeneric(BlockNode bNode, ArrayToArrayInfoMap arrToArrInf, 
                          boolean trueCost) {
     resetPorts();
     int lCost = 0;
     int sCost = 0;
+    //int lCost = -1;
+    //int sCost = -1;
     for (Iterator packIt = getVarGroupingsPtr().iterator(); 
     	 packIt.hasNext(); ) {
       HashSet pack = (HashSet)packIt.next();
@@ -528,182 +548,195 @@ public class MemoryBlock extends Chip implements Memory {
       ArrayToArrayInfoMap.ArrayInfo array = arrToArrInf.get(arrp);
       HashMap loadSched = array.getLoadCntSched(bNode);
       
-     for(Iterator loadsIt = loadSched.keySet().iterator(); 
+      for(Iterator loadsIt = loadSched.keySet().iterator(); 
     	   loadsIt.hasNext(); ) {
 	   
 	Integer time = (Integer)loadsIt.next();
 	Integer cnt = (Integer)loadSched.get(time);
 	
-	if(trueCost)
-	  lCost += _portUseSplit.addLoads(time.intValue(), cnt.intValue());
-	else
-	  lCost += _portUseSplit.addLoadsCnt(time.intValue(), cnt.intValue());
+	//if(trueCost)
+	lCost += _portUseSplit.addLoads(bNode, time.intValue(), cnt.intValue(),
+	                                trueCost);
+	//else
+	//  lCost += _portUseSplit.addLoadsCnt(time.intValue(), cnt.intValue());
       }
       HashMap storeSched = array.getStoreCntSched(bNode);
       for(Iterator storesIt = storeSched.keySet().iterator(); 
     	   storesIt.hasNext(); ) {
 	Integer time = (Integer)storesIt.next();
 	Integer cnt = (Integer)storeSched.get(time);
-	if(trueCost)
-	  sCost += _portUseSplit.addStores(time.intValue(), cnt.intValue());
-	else
-	  sCost += _portUseSplit.addStoresCnt(time.intValue(), cnt.intValue());
+	//if(trueCost)
+	sCost += _portUseSplit.addStores(bNode, time.intValue(), cnt.intValue(),
+	                                 trueCost);
+	//else
+	//  sCost += _portUseSplit.addStoresCnt(time.intValue(), cnt.intValue());
       }
     }
-    
+    //System.out.println("lCost " + lCost);
+    //System.out.println("sCost " + sCost);
     return Math.max(lCost, sCost);
   }
   
-  public int addLoadTest(int time, Operand array) {
+  public int addLoadTest(BlockNode bNode, int time, Operand array) {
     HashSet previousArrays = (HashSet)_saveArrLoadTimes.get(new Integer(time));
-    if((previousArrays == null)||(!(Memory.matchTester.matches(array, previousArrays)))) {
-      return _portUseSplit.addLoadTest(time);
+    if((previousArrays == null)||(!(isInSamePack(array, previousArrays)))) {
+      return _portUseSplit.addLoadTest(bNode, time, PortUsageSplitter.TRUECOST);
     }
     else 
-      return _portUseSplit.getLoadDataPortUseCnt(time);
+      //return _portUseSplit.addLoadTest(time);
+      return _portUseSplit.getDataPortUseCnt(bNode, time, PortUsageSplitter.LOAD);
   }
   
-  public int addLoadTestCnt(int time, Operand array) {
+  public int addLoadTestCnt(BlockNode bNode, int time, Operand array) {
     HashSet previousArrays = (HashSet)_saveArrLoadTimes.get(new Integer(time));
-    if((previousArrays == null)||(!(Memory.matchTester.matches(array, previousArrays)))) {
-      return _portUseSplit.addLoadTestCnt(time);
+    if((previousArrays == null)||
+    (!(isInSamePack(array, previousArrays)))) {
+      return _portUseSplit.addLoadTest(bNode, time, PortUsageSplitter.NORMCOST);
     }
     else {
-      return _portUseSplit.getLoadDataPortUseCnt(time);
-      }
+      //return _portUseSplit.addLoadTestCnt(time);
+/*System.out.println("isInSamePack(array, previousArrays) " + isInSamePack(array, previousArrays));
+System.out.println("array " + array);
+System.out.println("previousArrays " + previousArrays);
+System.out.println("matches");
+System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&");*/
+      return _portUseSplit.getDataPortUseCnt(bNode, time, PortUsageSplitter.LOAD);
+    }
   }
   
-  public int addLoad(int time, Operand array) {
+  public int addLoad(BlockNode bNode, int time, Operand array) {
     HashSet previousArrays = (HashSet)_saveArrLoadTimes.get(new Integer(time));
     if(previousArrays == null) {
       previousArrays = new HashSet();
       previousArrays.add(array);
       _saveArrLoadTimes.put(new Integer(time), previousArrays);
-      return _portUseSplit.addLoad(time);
+      return _portUseSplit.addLoad(bNode, time, PortUsageSplitter.TRUECOST);
     }
-    else if(Memory.matchTester.matches(array, previousArrays))
-      return _portUseSplit.getLoadDataPortUseCnt(time);
+    else if(isInSamePack(array, previousArrays))
+      return _portUseSplit.getDataPortUseCnt(bNode, time, PortUsageSplitter.LOAD);
     else {
       previousArrays.add(array);
-      return _portUseSplit.addLoad(time);
+      return _portUseSplit.addLoad(bNode, time, PortUsageSplitter.TRUECOST);
     }
   }
   
-  public int addLoadCnt(int time, Operand array) {
+  public int addLoadCnt(BlockNode bNode, int time, Operand array) {
     HashSet previousArrays = (HashSet)_saveArrLoadTimes.get(new Integer(time));
     if(previousArrays == null) {
       previousArrays = new HashSet();
       previousArrays.add(array);
       _saveArrLoadTimes.put(new Integer(time), previousArrays);
-      return _portUseSplit.addLoadCnt(time);
+      return _portUseSplit.addLoad(bNode, time, PortUsageSplitter.NORMCOST);
     }
-    else if(Memory.matchTester.matches(array, previousArrays))
-      return _portUseSplit.getLoadDataPortUseCnt(time);
+    else if(isInSamePack(array, previousArrays))
+      return _portUseSplit.getDataPortUseCnt(bNode, time, PortUsageSplitter.LOAD);
     else {
       previousArrays.add(array);
-      return _portUseSplit.addLoadCnt(time);
+      return _portUseSplit.addLoad(bNode, time, PortUsageSplitter.NORMCOST);
     }
   }
   
-  public int subLoad(int time, Operand array) {
+  public int subLoad(BlockNode bNode, int time, Operand array) {
     HashSet previousArrays = (HashSet)_saveArrLoadTimes.get(new Integer(time));
-    if((previousArrays == null)||(Memory.matchTester.matches(array, previousArrays))) {
-      return _portUseSplit.getLoadDataPortUseCnt(time);
+    if((previousArrays == null)||(isInSamePack(array, previousArrays))) {
+      return _portUseSplit.getDataPortUseCnt(bNode, time, PortUsageSplitter.LOAD);
     }
     else {
       if((previousArrays.size()==1)&&(previousArrays.contains(array)))
         _saveArrLoadTimes.remove(new Integer(time));
       previousArrays.remove(array);
-      return _portUseSplit.subLoad(time);
+      return _portUseSplit.subLoad(bNode, time, PortUsageSplitter.TRUECOST);
     }
   }
   
-  public int subLoadCnt(int time, Operand array) {
+  public int subLoadCnt(BlockNode bNode, int time, Operand array) {
     HashSet previousArrays = (HashSet)_saveArrLoadTimes.get(new Integer(time));
-    if((previousArrays == null)||(Memory.matchTester.matches(array, previousArrays))) {
-      return _portUseSplit.getLoadDataPortUseCnt(time);
+    if((previousArrays == null)||(isInSamePack(array, previousArrays))) {
+      return _portUseSplit.getDataPortUseCnt(bNode, time, PortUsageSplitter.LOAD);
     }
     else {
       if((previousArrays.size()==1)&&(previousArrays.contains(array)))
         _saveArrLoadTimes.remove(new Integer(time));
       previousArrays.remove(array);
-      return _portUseSplit.subLoadCnt(time);
+      return _portUseSplit.subLoad(bNode, time, PortUsageSplitter.NORMCOST);
     }
   }
   
-  public int addStoreTest(int time, Operand array) {
+  public int addStoreTest(BlockNode bNode, int time, Operand array) {
     HashSet previousArrays = (HashSet)_saveArrStoreTimes.get(new Integer(time));
-    if((previousArrays == null)||(!(Memory.matchTester.matches(array, previousArrays)))) {
-      return _portUseSplit.addStoreTest(time);
+    if((previousArrays == null)||(!(isInSamePack(array, previousArrays)))) {
+      return _portUseSplit.addStoreTest(bNode, time, PortUsageSplitter.TRUECOST);
     }
     else 
-      return _portUseSplit.getStoreDataPortUseCnt(time);
+      //return _portUseSplit.addStoreTest(time);
+      return _portUseSplit.getDataPortUseCnt(bNode, time, PortUsageSplitter.STORE);
   }
   
-  public int addStoreTestCnt(int time, Operand array) {
+  public int addStoreTestCnt(BlockNode bNode, int time, Operand array) {
     HashSet previousArrays = (HashSet)_saveArrStoreTimes.get(new Integer(time));
-    if((previousArrays == null)||(!(Memory.matchTester.matches(array, previousArrays)))) {
-      return _portUseSplit.addStoreTestCnt(time);
+    if((previousArrays == null)||(!(isInSamePack(array, previousArrays)))) {
+      return _portUseSplit.addStoreTest(bNode, time, PortUsageSplitter.NORMCOST);
     }
     else {
-      return _portUseSplit.getStoreDataPortUseCnt(time);
+      //return _portUseSplit.addStoreTestCnt(time);
+      return _portUseSplit.getDataPortUseCnt(bNode, time, PortUsageSplitter.STORE);
     }
   }
   
-  public int addStore(int time, Operand array) {
+  public int addStore(BlockNode bNode, int time, Operand array) {
     HashSet previousArrays = (HashSet)_saveArrStoreTimes.get(new Integer(time));
     if(previousArrays == null) {
       previousArrays = new HashSet();
       previousArrays.add(array);
       _saveArrStoreTimes.put(new Integer(time), previousArrays);
-      return _portUseSplit.addStore(time);
+      return _portUseSplit.addStore(bNode, time, PortUsageSplitter.TRUECOST);
     }
-    else if(Memory.matchTester.matches(array, previousArrays))
-      return _portUseSplit.getStoreDataPortUseCnt(time);
+    else if(isInSamePack(array, previousArrays))
+      return _portUseSplit.getDataPortUseCnt(bNode, time, PortUsageSplitter.STORE);
     else {
       previousArrays.add(array);
-      return _portUseSplit.addStore(time);
+      return _portUseSplit.addStore(bNode, time, PortUsageSplitter.TRUECOST);
     }
   }
-  public int addStoreCnt(int time, Operand array) {
+  public int addStoreCnt(BlockNode bNode, int time, Operand array) {
     HashSet previousArrays = (HashSet)_saveArrStoreTimes.get(new Integer(time));
     if(previousArrays == null) {
       previousArrays = new HashSet();
       previousArrays.add(array);
       _saveArrStoreTimes.put(new Integer(time), previousArrays);
-      return _portUseSplit.addStoreCnt(time);
+      return _portUseSplit.addStore(bNode, time, PortUsageSplitter.NORMCOST);
     }
-    else if(Memory.matchTester.matches(array, previousArrays))
-      return _portUseSplit.getStoreDataPortUseCnt(time);
+    else if(isInSamePack(array, previousArrays))
+      return _portUseSplit.getDataPortUseCnt(bNode, time, PortUsageSplitter.STORE);
     else {
       previousArrays.add(array);
-      return _portUseSplit.addStoreCnt(time);
+      return _portUseSplit.addStore(bNode, time, PortUsageSplitter.NORMCOST);
     }
   }
   
-  public int subStore(int time, Operand array) {
+  public int subStore(BlockNode bNode, int time, Operand array) {
     HashSet previousArrays = (HashSet)_saveArrStoreTimes.get(new Integer(time));
-    if((previousArrays == null)||(Memory.matchTester.matches(array, previousArrays))) {
-      return _portUseSplit.getStoreDataPortUseCnt(time);
+    if((previousArrays == null)||(isInSamePack(array, previousArrays))) {
+      return _portUseSplit.getDataPortUseCnt(bNode, time, PortUsageSplitter.STORE);
     }
     else {
       if((previousArrays.size()==1)&&(previousArrays.contains(array)))
         _saveArrStoreTimes.remove(new Integer(time));
       previousArrays.remove(array);
-      return _portUseSplit.subStore(time);
+      return _portUseSplit.subStore(bNode, time, PortUsageSplitter.TRUECOST);
     }
   }
   
-  public int subStoreCnt(int time, Operand array) {
+  public int subStoreCnt(BlockNode bNode, int time, Operand array) {
     HashSet previousArrays = (HashSet)_saveArrStoreTimes.get(new Integer(time));
-    if((previousArrays == null)||(Memory.matchTester.matches(array, previousArrays))) {
-      return _portUseSplit.getStoreDataPortUseCnt(time);
+    if((previousArrays == null)||(isInSamePack(array, previousArrays))) {
+      return _portUseSplit.getDataPortUseCnt(bNode, time, PortUsageSplitter.STORE);
     }
     else {
       if((previousArrays.size()==1)&&(previousArrays.contains(array)))
         _saveArrStoreTimes.remove(new Integer(time));
       previousArrays.remove(array);
-      return _portUseSplit.subStoreCnt(time);
+      return _portUseSplit.subStore(bNode, time, PortUsageSplitter.NORMCOST);
     }
   }
   

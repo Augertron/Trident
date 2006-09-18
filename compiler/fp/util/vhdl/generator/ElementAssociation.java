@@ -23,6 +23,8 @@ public class ElementAssociation implements VHDLout {
       _choices = new ChoiceList();
     else 
       _choices = choices;
+    if (expression == null) 
+      throw new VHDLException(" ElementAssociation with null expression "+null);
     _expression = expression;
   }
 

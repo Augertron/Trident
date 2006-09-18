@@ -14,14 +14,8 @@ import java.io.*;
 import fp.hardware.*;
 public class ALAPSchedule extends Schedule
 {
-  public ALAPSchedule() {
-    super(false, null);
-  }
-  public ALAPSchedule(boolean packNicht) {
-    super(packNicht, null);
-  }
-  public ALAPSchedule(boolean packNicht, BlockNode node) {
-    super(packNicht, node);    
+  public ALAPSchedule(BlockNode node) {
+    super(node);    
   }
 
   //method:  aLAP_AssignClkTck
@@ -95,72 +89,96 @@ public class ALAPSchedule extends Schedule
         //it is a loop, set the time to -2--remeber in ALAP, we're going 
         //backwards).
         if((!(areOutsNotPrimals((ArrayList)deflistsHM.get(instr))))&&
-           (connected)) 
+           (connected)/*&&(maxRank == -1)&&chipInfo.analyzeHardwareUse(_node, instr, -2)*/) {
   	  maxRank = -2;
+	}
 	else {
           //else for each output from the instruction
-  	  for (Iterator itout = ((ArrayList)deflistsHM.get(instr)).iterator(); 
-  		     itout.hasNext(); ) {
+  	  boolean instScheduled = false;
+	  for (Iterator itout = ((ArrayList)deflistsHM.get(instr)).iterator(); 
+  		     itout.hasNext()&&!instScheduled; ) {
   	    Operand this_out = (Operand)itout.next();
-  	    
-            //check if it is an input to another instruction
-	    boolean outFound = false;
-	    ArrayList tmpInstrList = null;
-	    for(Iterator ittmp = saveInputs.keySet().iterator(); 
-  		     ittmp.hasNext();) {
-	      String key = (String)ittmp.next();
-	      
-	      if(key.equals(this_out.toString())) {
-	        outFound = true;
-		tmpInstrList = (ArrayList)(saveInputs.get(key));
-	      }
-
+  	    if((chipInfo.findMemoryBlock(this_out)!=null)/*&&
+               (maxRank == -1)*/) {
+  	      maxRank = -2;
+	      instScheduled = true;
 	    }
-  	    if (outFound) {
-              
-	      //then for all instructions who use this output
-  	      for (Iterator it3 = ((ArrayList)tmpInstrList).iterator(); 
-  		    it3.hasNext(); ) {
-  		
-		Instruction tmpInstr = (Instruction)it3.next();
-  		float clktmp_int = tmpInstr.getExecTime();
-  		float runlength = getInstrRunLength(instr, chipInfo);
-  		
-		
-		//if all inputs are contants and all outputs not primals
-        	//set the execution time equal to that of the next node
-        	//(since they can be evaluated and wired directly to the 
-        	//input).
-        	//if((inputsAllConsts((ArrayList)useLists.get(instr)))&&
-        	//   (areOutsNotPrimals((ArrayList)deflistsHM.get(instr)))) {
-        	/*if(areOutsNotPrimals((ArrayList)deflistsHM.get(instr))) {
-  		  maxRank = clktmp_int;
-  		System.out.println("inputs all consts and outs not prim");
-		//else set the execution time, to the execution time of the 
-        	//successor minus the successor's run latency.  
-        	}
-		else*/ if(maxRank > clktmp_int - runlength)
-  		  maxRank = clktmp_int - runlength; 
+	    else {
+              //check if it is an input to another instruction
+	      boolean outFound = false;
+	      ArrayList tmpInstrList = null;
+	      for(Iterator ittmp = saveInputs.keySet().iterator(); 
+  		       ittmp.hasNext();) {
+		String key = (String)ittmp.next();
+
+		if(key.equals(this_out.toString())) {
+	          outFound = true;
+		  tmpInstrList = (ArrayList)(saveInputs.get(key));
+		}
+
+	      }
+  	      if (outFound) {
+
+		//then for all instructions who use this output
+  		for (Iterator it3 = ((ArrayList)tmpInstrList).iterator(); 
+  		      it3.hasNext(); ) {
+
+		  Instruction tmpInstr = (Instruction)it3.next();
+  		  float clktmp_int = tmpInstr.getExecTime();
+  		  float runlength = getInstrRunLength(instr, chipInfo);
+
+
+		  //if all inputs are contants and all outputs not primals
+        	  //set the execution time equal to that of the next node
+        	  //(since they can be evaluated and wired directly to the 
+        	  //input).
+        	  //if((inputsAllConsts((ArrayList)useLists.get(instr)))&&
+        	  //   (areOutsNotPrimals((ArrayList)deflistsHM.get(instr)))) {
+        	  /*if(areOutsNotPrimals((ArrayList)deflistsHM.get(instr))) {
+  		    maxRank = clktmp_int;
+  		  System.out.println("inputs all consts and outs not prim");
+		  //else set the execution time, to the execution time of the 
+        	  //successor minus the successor's run latency.  
+        	  }
+		  else*/ 
+		  if(maxRank > clktmp_int - runlength) {
+  		    maxRank = clktmp_int - runlength; 
+		  }
+  		}
   	      }
+
   	    }
-  	    
-  	  }
+	  }
   	}
   	
+  	  //check hardware requirements:
+  	  //System.out.println("**************************");
+	  /*while(!chipInfo.analyzeHardwareUse(_node, instr, (int)maxRank)) {
+  	    maxRank--;
+  	  //System.out.println("inst " + instr + " failed hardware check");
+  	  //System.out.println("maxRank " + maxRank);
+  	  }*/
+  	  //System.out.println("**************************");
+
   	//if the execution time has changed:
-        if(maxRank<instr.getExecTime()) {
+        if(maxRank<instr.getExecTime()/*&&chipInfo.analyzeHardwareUse(_node, instr, (int)maxRank)*/) {
   	  
           
   	  //check hardware requirements:
-  	  while(!chipInfo.analyzeHardwareUse(instr, (int)maxRank)) {
+  	  while(!chipInfo.analyzeHardwareUse(_node, instr, (int)maxRank)) {
   	    maxRank--;
   	  }
+  	  
+	   
+          //chipInfo.saveNewHardwareUsage(instr, (int)maxRank);
   	   
-          chipInfo.saveNewHardwareUsage(instr, (int)maxRank);
-  	   
-          CorrectStartTimes adjustTimes = new CorrectStartTimes(instr, chipInfo,
-							        GlobalOptions.doNotPackInstrucs);
+          CorrectStartTimes adjustTimes 
+	    = new CorrectStartTimes(instr, chipInfo, !GlobalOptions.packInstructions);
           float corrctedStart = adjustTimes.getCorrectedStartTime(maxRank, -1);
+  	  /*while(!chipInfo.analyzeHardwareUse(_node, instr, (int)corrctedStart)) {
+  	    corrctedStart--;
+  	  }*/
+          chipInfo.saveNewHardwareUsage(_node, instr, (int)corrctedStart);
   	  
 	  
 	  

@@ -57,7 +57,8 @@ public class AnalyzeHardareConstraints
 	chipInfo.displayMemsArrs();
 	throw new HardwareException("error, memory full!!!");
       }
-      chipInfo.saveBestArrayAlloc(bGraph);
+      if(!GlobalOptions.onePreAlloc)
+        chipInfo.saveBestArrayAlloc(bGraph);
       System.out.println("================================================================");
       System.out.println("run " + i);
       chipInfo.displayMemsArrs();
@@ -69,8 +70,10 @@ public class AnalyzeHardareConstraints
       time = System.currentTimeMillis();
     }while((time < startTime + GlobalOptions.painThreshHold)&&
            (!GlobalOptions.onePreAlloc));
-    chipInfo.changeToBestArrayAlloc();
+    if(!GlobalOptions.onePreAlloc)
+      chipInfo.changeToBestArrayAlloc();
     selectOperators(bGraph, opSel);
+    
     System.out.println("================================================================");
     System.out.println("final ");
     chipInfo.displayMemsArrs();
@@ -111,20 +114,22 @@ public class AnalyzeHardareConstraints
       //unschedule graph:
       prelimSched.unSchedule(bGraph);
     } 
+    //System.exit(1);
   }
   
   public void init(BlockGraph bGraph, ChipDef chipInfo, 
                    OperationSelection opSel) {
     chipInfo.loadIndexes(bGraph);
-    chipInfo.loadDesign(bGraph);
-    for (Iterator vIt = new HashSet(bGraph.getAllNodes()).iterator(); 
-         vIt.hasNext();) {
-      BlockNode bNode = (BlockNode) vIt.next();
-      if(bNode.getInstructions().size()==0) continue;
-      if(GlobalOptions.slowestMem)
-        chipInfo.setInstructions(bNode.getInstructions());
+    if(GlobalOptions.slowestMem) {
+      for (Iterator vIt = new HashSet(bGraph.getAllNodes()).iterator(); 
+           vIt.hasNext();) {
+	BlockNode bNode = (BlockNode) vIt.next();
+	if(bNode.getInstructions().size()==0) continue;
+	chipInfo.setInstructions(bNode.getInstructions());
+      }
     }
-    if(!GlobalOptions.slowestMem) {
+    else {
+      chipInfo.loadDesign(bGraph);
       if(!chipInfo.arrayAllocate(bGraph)) {
 	chipInfo.displayMemsArrs();
 	throw new HardwareException("error, memory full!!!");

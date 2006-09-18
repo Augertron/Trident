@@ -215,9 +215,9 @@ public class ChipDef
   }
   public boolean arrayAllocate(BlockGraph bGraph) {
     resetMemSpaceLeft();
-    boolean hasntFailed = true;
-    while((_arrToArrInfoMap.size()>0) && (hasntFailed)) {
-      hasntFailed = true;
+    //boolean hasntFailed = true;
+    while((_arrToArrInfoMap.size()>0)/* && (hasntFailed)*/) {
+      //hasntFailed = true;
       ArrayList arrays = new ArrayList(_arrToArrInfoMap.returnRemainingArrs());
       Collections.shuffle(arrays);
       _arrToArrInfoMap.printRemainingArrays();
@@ -228,9 +228,9 @@ public class ChipDef
 	ArrayToArrayInfoMap.ArrayInfo arrInfo = 
 	                            (ArrayToArrayInfoMap.ArrayInfo)arrs.next();
         
+        if(!checkIfEnoughRoom(arrInfo)) return false;
 	if(!memAllocate(arrInfo, bGraph)) 
           arrInfo.tryCnt++;
-        if(!checkIfEnoughRoom(arrInfo)) hasntFailed = false;
       }
     }
     return (_arrToArrInfoMap.returnRemainingArrs().size()<=0);
@@ -268,7 +268,9 @@ public class ChipDef
                              BlockGraph bGraph) {
     ArrayList mems = new ArrayList(_memoryBlocks);
     Collections.shuffle(mems);
-    for (Iterator itsMem = mems.iterator(); itsMem.hasNext(); ) {
+    boolean locFound = false;
+    for (Iterator itsMem = mems.iterator(); itsMem.hasNext()&&
+                                            !locFound; ) {
     //for (Iterator itsMem = _memoryBlocks.iterator(); itsMem.hasNext(); ) {
       Memory memBlock = (Memory)itsMem.next();
       boolean didAllocate = allocate(memBlock, array);
@@ -277,13 +279,14 @@ public class ChipDef
       if((didAllocate) && (cost-array.tryCnt<=0)) {
         memBlock.subSpace(array.arraySize);
 	_arrToArrInfoMap.removeArray(array.var);
-	return true;
+	locFound = true;
       }
       else {
         deAllocateArray(memBlock, array);
+	locFound = false;
       }
     }
-    return false;
+    return locFound;
   }
   
   
@@ -373,7 +376,7 @@ public class ChipDef
   }
   
   public void resetPorts() {
-    if(_isDummyBoard) return;
+    //if(_isDummyBoard) return;
     for (Iterator itsMem = _memoryBlocks.iterator(); itsMem.hasNext(); ) {
       Memory memBlock = (Memory)itsMem.next();
       memBlock.resetPorts();
@@ -384,7 +387,7 @@ public class ChipDef
   for testing an array to memory allocation assuming all aloads and astores
   are scheduled at the same time
   */
-  public int calcLoad(ArrayList instList) {
+  public int calcLoad(BlockNode bNode, ArrayList instList) {
   
     HashMap memBlockLoadCost = new HashMap();
     HashMap memBlockStoreCost = new HashMap();
@@ -394,13 +397,13 @@ public class ChipDef
       if(AStore.conforms(inst)) {
 	Operand array = AStore.getPrimalDestination(inst);
 	Memory mBlock = findMemoryBlock(array);
-	int cost = mBlock.addStoreCnt(0, array);
+	int cost = mBlock.addStoreCnt(bNode, 0, array);
 	maxCost = Math.max(maxCost, cost);
       }
       if(ALoad.conforms(inst)) {
 	Operand array = ALoad.getPrimalSource(inst);
 	Memory mBlock = findMemoryBlock(array);
-	int cost = mBlock.addLoadCnt(0, array);
+	int cost = mBlock.addLoadCnt(bNode, 0, array);
 	maxCost = Math.max(maxCost, cost);
       }
     }
@@ -518,7 +521,8 @@ public class ChipDef
    * @param cycle desired time to schedule it
    * @return true=no prob; false = please, try again later
    */
-  public boolean analyzeHardwareUse(Instruction instr, int cycle) {
+  public boolean analyzeHardwareUse(BlockNode bNode, Instruction instr, 
+                                    int cycle) {
 
     Operator operator = instr.operator();
     
@@ -526,14 +530,30 @@ public class ChipDef
     if(AStore.conforms(instr)) {
       Operand array = AStore.getPrimalDestination(instr);
       Memory mBlock = findMemoryBlock(array);
-      if(mBlock.addStoreTestCnt(cycle, array) > 1) return false;
+      /*System.out.println("looking at store conflicts");
+      //displayMemsArrs();
+      System.out.println("instr " + instr);
+      System.out.println("cycle " + cycle);
+      System.out.println("array " + array);
+      System.out.println("bNode " + bNode);
+      System.out.println("mBlock " + mBlock.getChipName());
+      System.out.println("mBlock.addStoreTestCnt(bNode, cycle, array) " + mBlock.addStoreTestCnt(bNode, cycle, array));*/
+      if(mBlock.addStoreTestCnt(bNode, cycle, array) > 1) return false;
     }
     
     //check for too many reads:
     if(ALoad.conforms(instr)) {
       Operand array = ALoad.getPrimalSource(instr);
       Memory mBlock = findMemoryBlock(array);
-      if(mBlock.addLoadTestCnt(cycle, array) > 1) return false;
+      /*System.out.println("looking at load conflicts");
+      //displayMemsArrs();
+      System.out.println("instr " + instr);
+      System.out.println("cycle " + cycle);
+      System.out.println("array " + array);
+      System.out.println("bNode " + bNode);
+      System.out.println("mBlock " + mBlock.getChipName());
+      System.out.println("mBlock.addLoadTestCnt(bNode, cycle, array) " + mBlock.addLoadTestCnt(bNode, cycle, array));*/
+     if(mBlock.addLoadTestCnt(bNode, cycle, array) > 1) return false;
     }
     
     if(_isDummyBoard) return true;
@@ -556,14 +576,12 @@ public class ChipDef
       return false;
       
     }
-      
     //if all the tests passed, then there are no hardware probs
     return true;
-    
   }
   
-  public HashSet killConflictingInstrucs(Instruction instr, int cycle,
-                                         MSchedHash schedule) {
+  public HashSet killConflictingInstrucs(BlockNode bNode, Instruction instr, 
+                                         int cycle, MSchedHash schedule) {
 
     HashSet unscheduled = new HashSet();
     Operator operator = instr.operator();
@@ -572,7 +590,7 @@ public class ChipDef
     if(AStore.conforms(instr)) {
       Operand array = AStore.getPrimalDestination(instr);
       Memory mBlock = findMemoryBlock(array);
-      if(mBlock.addStoreTestCnt(cycle, array) > 1) {
+      if(mBlock.addStoreTestCnt(bNode, cycle, array) > 1) {
 	HashSet list = schedule.getAllAtTime((float)cycle);
 	for (Iterator it1 = ((HashSet)list.clone()).iterator(); it1.hasNext();) {
           MSchedHash.MSchedInstObject instObj = 
@@ -593,7 +611,7 @@ public class ChipDef
     if(ALoad.conforms(instr)) {
       Operand array = ALoad.getPrimalSource(instr);
       Memory mBlock = findMemoryBlock(array);
-      if(mBlock.addLoadTestCnt(cycle, array) > 1) {
+      if(mBlock.addLoadTestCnt(bNode, cycle, array) > 1) {
         HashSet list = schedule.getAllAtTime((float)cycle);
 	for (Iterator it1 = ((HashSet)list.clone()).iterator(); it1.hasNext();) {
 	  MSchedHash.MSchedInstObject instObj = 
@@ -644,18 +662,18 @@ public class ChipDef
           
   }
   
-  public void removeFromTime(Instruction instr, int cycle) {
+  public void removeFromTime(BlockNode bNode, Instruction instr, int cycle) {
   
     if(cycle >= 0) {
       if(AStore.conforms(instr)) {
         Operand array = AStore.getPrimalDestination(instr);
         Memory mBlock = findMemoryBlock(array);
-        mBlock.subStoreCnt(cycle, array);
+        mBlock.subStoreCnt(bNode, cycle, array);
       }
       if(ALoad.conforms(instr)) {
         Operand array = ALoad.getPrimalSource(instr);
         Memory mBlock = findMemoryBlock(array);
-        mBlock.subLoadCnt(cycle, array);
+        mBlock.subLoadCnt(bNode, cycle, array);
       }
     }
     
@@ -681,7 +699,8 @@ public class ChipDef
    * @param instr instruction to schedule
    * @param cycle desired time to schedule it
    */
-  public void saveNewHardwareUsage(Instruction instr, int cycle) {
+  public void saveNewHardwareUsage(BlockNode bNode, Instruction instr, 
+                                   int cycle) {
     int maxRanktmp = (int)instr.getExecTime();
     Operator operator = instr.operator();
     if(!(_isDummyBoard)) { 
@@ -697,16 +716,16 @@ public class ChipDef
         	  .put(operator, new Integer(opUseCntOld - 1));
       }
     }
-    if(maxRanktmp >= 0) {
+    if(maxRanktmp != -1) {
       if(AStore.conforms(instr)) {
         Operand array = AStore.getPrimalDestination(instr);
         Memory mBlock = findMemoryBlock(array);
-        mBlock.subStoreCnt(maxRanktmp, array);
+        mBlock.subStoreCnt(bNode, maxRanktmp, array);
       }
       if(ALoad.conforms(instr)) {
         Operand array = ALoad.getPrimalSource(instr);
         Memory mBlock = findMemoryBlock(array);
-        mBlock.subLoadCnt(maxRanktmp, array);
+        mBlock.subLoadCnt(bNode, maxRanktmp, array);
       }
     }
     
@@ -729,13 +748,13 @@ public class ChipDef
     if(AStore.conforms(instr)) {
       Operand array = AStore.getPrimalDestination(instr);
       Memory mBlock = findMemoryBlock(array);
-      mBlock.addStoreCnt(cycle, array);
+      mBlock.addStoreCnt(bNode, cycle, array);
     }
     
     if(ALoad.conforms(instr)) {
       Operand array = ALoad.getPrimalSource(instr);
       Memory mBlock = findMemoryBlock(array);
-      mBlock.addLoadCnt(cycle, array);
+      mBlock.addLoadCnt(bNode, cycle, array);
     }
     
     //save this instruction to the individual instantiation of the operator:

@@ -1,44 +1,101 @@
 (fabric.in tb_if_b
+  ; This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
+
+
   (write .reset 1)
   (wait .reset 10)
-  
-  (write a 10)
-  (write b 11)
-  (write c 12)
-  (write d 13)
+
+  (write a 0x0000000A)
+  (wait)
+  (read a 0x0000000A)
+  (write b 0x0000000B)
+  (wait)
+  (read b 0x0000000B)
+  (write c 0x0000000C)
+  (wait)
+  (read c 0x0000000C)
+  (write d 0x0000000D)
+  (wait)
+  (read d 0x0000000D)
 
   (write .start 1)
-  (wait .done 50)
 
-  (read a 12)
-  (read b 12)
-  (read c 13)
-  (read d 13)
+  (wait .done 120)
 
-  (write a 10)
-  (write b 11)
-  (write c 1)
-  (write d 13)
+  (read a 0x0000000C)
+  (wait)
+  (read b 0x0000000C)
+  (wait)
 
-  (write .start 1)
-  (wait .done 50)
- 
-  (read a 1)
-  (read b 13)
-  (read c 13)
-  (read d 13)  
-
-  (write a 15)
-  (write b 11)
-  (write c 12)
-  (write d 13)
+  # next test
+  (write a 0x0000000A)
+  (wait)
+  (read a 0x0000000A)
+  (write b 0x0000000B)
+  (wait)
+  (read b 0x0000000B)
+  (write c 0x00000001)
+  (wait)
+  (read c 0x00000001)
+  (write d 0x0000000D)
+  (wait)
+  (read d 0x0000000D)
 
   (write .start 1)
-  (wait .done 50)
- 
-  (read a 13)
-  (read b 12)
-  (read c 13)
-  (read d 13)  
+
+  (wait .done 120)
+
+  (read a 0x00000001)
+  (wait)
+  (read b 0x0000000D)
+  (wait)
+
+  # next test
+  (write a 0x0000000F)
+  (wait)
+  (read a 0x0000000F)
+  (write b 0x0000000B)
+  (wait)
+  (read b 0x0000000B)
+  (write c 0x0000000C)
+  (wait)
+  (read c 0x0000000C)
+  (write d 0x0000000D)
+  (wait)
+  (read d 0x0000000D)
+
+  (write .start 1)
+
+  (wait .done 120)
+
+  (read a 0x0000000D)
+  (wait)
+  (read b 0x0000000C)
+  (wait)
+
+  # next test
+  (write a 0x0000000F)
+  (wait)
+  (read a 0x0000000F)
+  (write b 0x0000000B)
+  (wait)
+  (read b 0x0000000B)
+  (write c 0x0000000C)
+  (wait)
+  (read c 0x0000000C)
+  (write d 0x00000001)
+  (wait)
+  (read d 0x00000001)
+
+  (write .start 1)
+
+  (wait .done 120)
+
+  (read a 0x00000001)
+  (wait)
+  (read b 0x00000001)
+  (wait)
+
 
 )
+

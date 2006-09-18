@@ -1,39 +1,47 @@
 (fabric.in tb_ifor_b
+  ; This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
+
+
   (write .reset 1)
   (wait .reset 10)
-  
+
   (write a 10)
-  (write b 11)
-  (write c 12)
-  (write d 13)
-  (write e 14)
-  (write f 15)
-
-  (write .start 1)
-  (wait .done 50)
-
+  (wait)
   (read a 10)
+  (write b 11)
+  (wait)
   (read b 11)
+  (write c 12)
+  (wait)
   (read c 12)
+  (write d 13)
+  (wait)
   (read d 13)
-  (read e 14)
-  (read f 14)
-
-  (write a 0)
-  (write b 0)
-  (write c 0)
-  (write d 0)
   (write e 14)
-  (write f 15)
-
-  (write .start 1)
-  (wait .done 50)
- 
-  (read a 0)
-  (read b 0)
-  (read c 0)
-  (read d 0)
+  (wait)
   (read e 14)
+  (write f 15)
+  (wait)
+  (read f 15)
+  (write a 0)
+  (wait)
+  (read a 0)
+  (write b 0)
+  (wait)
+  (read b 0)
+  (write c 0)
+  (wait)
+  (read c 0)
+  (write d 0)
+  (wait)
+  (read d 0)
+  (write e 14)
+  (wait)
+  (read e 14)
+  (write f 15)
+  (wait)
   (read f 15)
 
+
 )
+

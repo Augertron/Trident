@@ -29,8 +29,16 @@ abstract class VHDLBase implements VHDLout {
   LinkedList getHeader() { return _header; }
   void addHeader(VHDLout v) { _header.add(v); }
 
+  public void addHeaderComment(String c) {
+    addHeader(new Comment(c));
+  }
+
   LinkedList getFooter() { return _footer; }
   void addFooter(VHDLout v) { _footer.add(v); }
+
+  public void addFooterComment(String c) {
+    addFooter(new Comment(c));
+  }
 
 
   protected void appendHeader(StringBuffer sbuf, String pre) {

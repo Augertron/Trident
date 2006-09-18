@@ -1,17 +1,17 @@
-;LA-CC 05-135 Trident @VERSION@
+; LA-CC 05-135 Trident @VERSION@
 ;
-;Copyright Notice
-;Copyright @YEAR@ (c) the Regents of the University of California.
+; Copyright Notice
+; Copyright @YEAR@ (c) the Regents of the University of California.
 ;
-;This Software was produced under a U.S. Government contract 
-;(W-7405-ENG-36) by Los Alamos National Laboratory, which is operated by 
-;the University of California for the U.S. Department of Energy. The U.S. 
-;Government is licensed to use, reproduce, and distribute this Software. 
-;Permission is granted to the public to copy and use this Software without 
-;charge, provided that this Notice and any statement of authorship are 
-;reproduced on all copies. Neither the Government nor the University makes 
-;any warranty, express or implied, or assumes any liability or 
-;responsibility for the user of this Software.
+; This Software was produced under a U.S. Government contract 
+; (W-7405-ENG-36) by Los Alamos National Laboratory, which is operated by 
+; the University of California for the U.S. Department of Energy. The U.S. 
+; Government is licensed to use, reproduce, and distribute this Software. 
+; Permission is granted to the public to copy and use this Software without 
+; charge, provided that this Notice and any statement of authorship are 
+; reproduced on all copies. Neither the Government nor the University makes 
+; any warranty, express or implied, or assumes any liability or 
+; responsibility for the user of this Software.
 
 
 (hardware XD1
@@ -40,11 +40,11 @@
 
   (for x in (0 1 2 3)
     (chip ram
-      ;(count 4)
       (name qdr_sram$x)
       (width 64)
       (depth 524288)
-      (address 0x0000_0000)
+      (address 0x0100_0000)
+      (addressable_size 8)
 
       (memAccessInst aload
 	(name xd1_qdr_sram_aload)

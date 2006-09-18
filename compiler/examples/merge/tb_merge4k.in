@@ -6,11 +6,14 @@
 
   # this is not necessary, but I wanted to test read/write!!!
   (write i 1)
+  (wait)
   (read i 1)
   (write i 2)
   (write i 3)
+  (wait)
   (read i 3)
   (write i 2)
+  (wait)
   (read i 2)
 
   (write .start 1)

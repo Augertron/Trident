@@ -6,6 +6,7 @@
 
 package fp.hwdesc;
 import java.util.*;
+import fp.flowgraph.BlockNode;
 
 public class PortUseCnt extends HashMap {
   /*private class Time {
@@ -25,75 +26,109 @@ public class PortUseCnt extends HashMap {
   
   public PortUseCnt(){super();}
   
-  public void put(int time, int cnt) {
+  public void put(BlockNode node, int time, int cnt) {
     Integer tm = new Integer(time);
     Integer cn = new Integer(cnt);
-    super.put(tm, cn);
+    if(containsKey(node)) {
+      HashMap node2Time = ((HashMap)super.get(node));
+      node2Time.put(tm, cn);
+    }
+    else {
+      HashMap node2Time = new HashMap();
+      node2Time.put(tm, cn);
+      super.put(node, node2Time);
+    }
   }
   
-  public int get(int time) {
-    Integer tm = new Integer(time);
-    if(containsKey(tm))
-      return ((Integer)super.get(tm)).intValue();
+  public int get(BlockNode node, int time) {
+    if(containsKey(node)) {
+      HashMap node2Time = ((HashMap)super.get(node));
+      Integer tm = new Integer(time);
+      if(node2Time.containsKey(tm))
+	return ((Integer)node2Time.get(tm)).intValue();
+      else
+	return 0;
+      
+    }
     else
       return 0;
   }
   
-  public int get(Integer time) {
+  /*public int get(Integer time) {
     return ((Integer)super.get(time)).intValue();
+  }*/
+  
+  public void addUses(BlockNode node, int cnt) {
+    addUses(node, 0, cnt);
   }
   
-  public void addUses(int cnt) {
-    addUses(0, cnt);
+  public void addUse(BlockNode node, int time) {
+    addUses(node, time, 1);
   }
   
-  public void addUse(int time) {
-    addUses(time, 1);
+  public void addUses(BlockNode node, int time, int cnt) {
+    int oldCnt = get(node, time);
+    /*System.out.println("=============================================");
+    System.out.println("node " + node);
+    System.out.println("time " + time);
+    System.out.println("cnt " + cnt);
+    System.out.println("oldCnt " + oldCnt);*/
+    put(node, time, oldCnt + cnt);
+    //System.out.println("get(node, time) " + get(node, time));
+    //System.out.println("=============================================");
   }
   
-  public void addUses(int time, int cnt) {
-    int oldCnt = get(time);
-    put(time, oldCnt + cnt);
+  public void subUses(BlockNode node, int cnt) {
+    subUses(node, 0, cnt);
   }
   
-  public void subUses(int cnt) {
-    subUses(0, cnt);
+  public void subUse(BlockNode node, int time) {
+    subUses(node, time, 1);
   }
   
-  public void subUse(int time) {
-    subUses(time, 1);
+  public void subUses(BlockNode node, int time, int cnt) {
+    int oldCnt = get(node, time);
+    /*System.out.println("----------------------------------------------");
+    System.out.println("node " + node);
+    System.out.println("time " + time);
+    System.out.println("cnt " + cnt);
+    System.out.println("oldCnt " + oldCnt);*/
+    //if(oldCnt>0)
+      put(node, time, oldCnt - cnt);
+    //System.out.println("get(node, time) " + get(node, time));
+    //System.out.println("----------------------------------------------");
   }
   
-  public void subUses(int time, int cnt) {
-    int oldCnt = get(time);
-    put(time, oldCnt - cnt);
+  public int testPortUseCntGen(BlockNode node, int cnt) {
+    return testPortUseCnt(node, 0, cnt);
   }
   
-  public int testPortUseCntGen(int cnt) {
-    return testPortUseCnt(0, cnt);
-  }
-  
-  public int testPortUse(int time) {
-    return testPortUseCnt(time, 1);
+  public int testPortUse(BlockNode node, int time) {
+    return testPortUseCnt(node, time, 1);
   }
 
-  public int testPortUseCnt(int time, int cnt) {
-    addUses(time, cnt);
-    int cost = getLoad(time);
-    subUses(time, cnt);
+  public int testPortUseCnt(BlockNode node, int time, int cnt) {
+    addUses(node, time, cnt);
+    int cost = getLoad(node, time);
+    subUses(node, time, cnt);
     return cost;
   }
 
-  public int getLoad(int time) {
-    return get(time);
+  public int getLoad(BlockNode node, int time) {
+  //    if(this.isEmpty()) return 9999;
+    return get(node, time);
   }
 
   public int getMaxPortLoad() {
     int fullCost = 0;
-    for (Iterator costIt = keySet().iterator(); 
-    	 costIt.hasNext(); ) {
-      Integer time = (Integer)costIt.next();
-      fullCost = Math.max(get(time), fullCost);
+    for (Iterator nIt = values().iterator(); 
+    	 nIt.hasNext(); ) {
+      HashMap node2Time = (HashMap)nIt.next();
+      for (Iterator costIt = node2Time.keySet().iterator(); 
+    	   costIt.hasNext(); ) {
+	Integer time = (Integer)costIt.next();
+	fullCost = Math.max(((Integer)node2Time.get(time)).intValue(), fullCost);
+      }
     }
     return fullCost;
   }

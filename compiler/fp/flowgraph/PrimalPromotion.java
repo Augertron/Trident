@@ -149,32 +149,6 @@ public class PrimalPromotion
       /**
       make the new primal and its store
       */
-      /*ArrayList instList = hyperBlockGroups.getInstructionList(pBlock);
-      MultiDefHash mDefHash = hyperBlockGroups.getMultiDefHash(pBlock);
-      int maxDefRank = -9999;
-      Instruction lastDef = null;
-      for(Iterator defIt = ((ArrayList)mDefHash.get(def)).iterator();
-	   defIt.hasNext();) {
-	Instruction defInst = (Instruction) defIt.next();
-	if(instList.indexOf(defInst) > maxDefRank) {
-          maxDefRank = instList.indexOf(defInst);
-          lastDef = defInst;
-	}
-      }
-      for(Iterator esIt = hyperBlockGroups.getNodeSet(pBlock).iterator();
-    	     esIt.hasNext();){
-	BlockNode cNode = (BlockNode) esIt.next();
-        DefHash defHash = cNode.getDefHash();
-	ArrayList nodeInstList = cNode.getInstructions();
-	if(nodeInstList.contains(lastDef)) {
-	  int defRank = nodeInstList.indexOf(lastDef) + 1;
-	  PrimalOperand newVar = makePrimal(def);
-	  //Operand otherOp = makeNonPrim(def);
-	  Instruction sInst = Store.create(Operators.STORE, type, newVar, otherOp, eq);
-	  addNewInst(cNode, sInst, defRank);
-	  //return otherOp;
-        }
-      }*/
       ArrayList nodeInstList = pBlock.getInstructions();
       if(nodeInstList.contains(dInst)) {
         int defRank = nodeInstList.indexOf(dInst) + 1;
@@ -185,29 +159,6 @@ public class PrimalPromotion
         //return otherOp;
       }
     }
-  
-    /*public Operand makeNonPrim(Operand op) {
-      /**
-      the new operand should be of the same type as the old one
-      
-      Operand newVar = null;
-      if(op.isBlock()) {
-        newVar = Operand.nextBlock(op.getName());
-      }
-      else if(op.isBoolean()) {
-        newVar = Operand.nextBoolean(op.getName());
-      }
-      else if(op.isAddr()) {
-        newVar = Operand.nextAddr(op.getName());
-      }
-      else if(op.isLabel()) {
-        newVar = Operand.nextLabel(op.getName());
-      }
-      else if(op.isMemory()) {
-        newVar = Operand.nextMemory(op.getName());
-      }
-      return newVar;
-    }*/
     
     /**
     create or get a new copy of the non primal operand
@@ -240,7 +191,6 @@ public class PrimalPromotion
 	if(nodeInstList.contains(fstUse)) {
 	  int useRank = nodeInstList.indexOf(fstUse);
 	  addNewInst(cNode, lInst, useRank);
-	  //return newVar;
 	}
       }
     }
@@ -314,20 +264,43 @@ public class PrimalPromotion
   and renames the non primal.
   
   */
+  private HashMap saveChildUses = new HashMap();
+  private HashMap saveParentDefs = new HashMap();
   public void primalPromotion(HyperBlockList mergeBlockGroups) {
-    //HyperBlockList mergeBlockGroups = new HyperBlockList();
-    //mergeBlockGroups.genMergeBlockGroups(graph);
     
     primalPromotionRec((BlockNode)_graph.ENTRY, mergeBlockGroups,
-		       new HashSet(), new HashSet());
+		       new HashSet(), new HashSet()/*, saveChildUses, 
+		       saveParentDefs*/);
+    for(Iterator esIt = saveChildUses.keySet().iterator();
+    	   esIt.hasNext();){
+      BlockNode node = (BlockNode) esIt.next();
+      MultiDefHash def_hash = mergeBlockGroups.getMultiDefHash(node);
+      UseHash use_hash = mergeBlockGroups.getUseHash(node);
+      HashSet usedByChildren = (HashSet)saveChildUses.get(node);
+      //usedByChildren.addAll(use_hash.keySet());
+      HashSet savedDefsTmp = (HashSet)saveParentDefs.get(node);
+      //savedDefsTmp.addAll(def_hash.keySet());
+      HashSet allTransferVars = new HashSet();
+      allTransferVars.addAll(savedDefsTmp);
+      allTransferVars.addAll(usedByChildren);
+      for(Iterator opIt = allTransferVars.iterator();
+    	     opIt.hasNext();){
+	Operand op = (Operand) opIt.next();
+	if((!op.isPrimal())&&(!op.isConstant()))
+          addLoadsAndStores(def_hash, use_hash, op, savedDefsTmp, usedByChildren,
+        		    node, mergeBlockGroups);
+      } 
+      
+    }
     _operandCreator.addInstructs();
   }
       
- 
   public HashSet primalPromotionRec(BlockNode currentHyperBlock,
                                     HyperBlockList mergeBlockGroups,
 				    HashSet alreadyVisited,
-				    HashSet savedDefs) {
+				    HashSet savedDefs/*,
+				    HashMap saveChildUses,
+				    HashMap saveParentDefs*/) {
   
     alreadyVisited.add(currentHyperBlock);
     MultiDefHash def_hash = mergeBlockGroups.getMultiDefHash(currentHyperBlock);
@@ -341,32 +314,42 @@ public class PrimalPromotion
       if(!alreadyVisited.contains(cNode)) {
 	HashSet usedByChildrenTmp = null;
 	usedByChildrenTmp = primalPromotionRec(cNode, mergeBlockGroups, 
-	                                       alreadyVisited, savedDefsNew);
+	                                       alreadyVisited, savedDefsNew/*,
+					       saveChildUses, saveParentDefs*/);
         usedByChildren.addAll(usedByChildrenTmp);
       }
       else if((currentHyperBlock != cNode)&&(cNode != _graph.EXIT)) {
-	usedByChildren.addAll(mergeBlockGroups.getUseHash(cNode).keySet());
+	if(saveChildUses.containsKey(cNode)) {
+	  usedByChildren.addAll((HashSet)saveChildUses.get(cNode));
+        }
+	/*else {
+          usedByChildren.addAll(mergeBlockGroups.getUseHash(currentHyperBlock).keySet());
+	}*/
+        HashSet cNodeDefs = new HashSet();
+	if(saveParentDefs.containsKey(cNode))
+	  cNodeDefs = (HashSet)saveParentDefs.get(cNode);
+	cNodeDefs.addAll(def_hash.keySet());
+	saveParentDefs.put(cNode, cNodeDefs);
       }
       else if((currentHyperBlock == cNode)&&(cNode != _graph.EXIT)) {
-	HashSet boundryXingOps = new HashSet();
-        boundryXingOps.addAll(getRealLoopUses(mergeBlockGroups, cNode));
-	usedByChildren.addAll(boundryXingOps);
-	savedDefsTmp.addAll(boundryXingOps);
+	//HashSet boundryXingOps = new HashSet();
+        //boundryXingOps.addAll(getRealLoopUses(mergeBlockGroups, cNode));
+	//usedByChildren.addAll(boundryXingOps);
+	//savedDefsTmp.addAll(boundryXingOps);
+	savedDefsTmp.addAll(def_hash.keySet());
       }
     }
-    UseHash use_hash = mergeBlockGroups.getUseHash(currentHyperBlock);
-    
-    HashSet allTransferVars = new HashSet();
-    allTransferVars.addAll(savedDefsTmp);
-    allTransferVars.addAll(usedByChildren);
-    for(Iterator opIt = allTransferVars.iterator();
-    	   opIt.hasNext();){
-      Operand op = (Operand) opIt.next();
-      if(!op.isPrimal())
-        addLoadsAndStores(def_hash, use_hash, op, savedDefsTmp, usedByChildren,
-        		  currentHyperBlock, mergeBlockGroups);
-    } 
-    usedByChildren.addAll(mergeBlockGroups.getUseHash(currentHyperBlock).keySet());
+    //usedByChildren.addAll(mergeBlockGroups.getUseHash(currentHyperBlock).keySet());
+    //if((currentHyperBlock!=_graph.EXIT)&&(currentHyperBlock!=_graph.ENTRY)) {
+      usedByChildren.addAll(mergeBlockGroups.getUseHash(currentHyperBlock).keySet());
+      saveChildUses.put(currentHyperBlock, usedByChildren);
+      if(saveParentDefs.containsKey(currentHyperBlock)) {
+        HashSet cNodeDefs = (HashSet)saveParentDefs.get(currentHyperBlock);
+        //cNodeDefs.addAll(def_hash.keySet());
+	savedDefsTmp.addAll(cNodeDefs);
+      }
+      saveParentDefs.put(currentHyperBlock, savedDefsTmp);
+    //}
     return usedByChildren;
   
   }
@@ -395,10 +378,6 @@ public class PrimalPromotion
   old nonprimal must be replaced by the new nonprimal.  
   
   3)  if an operand is used and defined within a hyperblock, there are 2 different sub cases.
-  
-  (The different versions of 3 were merged together because if there are multiple defs, it gets
-  more compilicated, and it's easier to make use of merge blocks capabilities than to try and 
-  fix everything myself here. (I hope merge blocks fixes it anyway.))
   
   A)  If an operand is used and defined within a hyperblock and is defined before it is used.  This
   case is very simple, because it overwrites any earlier definitions of the operand and so no load 
@@ -430,7 +409,9 @@ public class PrimalPromotion
   
   ==================================================================================================
   Note:
-  Only 1 load or store is added per hyperblock!!!
+  Only 1 load or store is added per hyperblock!!! (I don't know why I used exclamation marks, or 
+  even more, why I used 3, but evidently I found this statement highly significant at the time.
+  Also this is no longer true.  Multiple stores may be added.)
   ==================================================================================================
   
   
@@ -443,7 +424,6 @@ public class PrimalPromotion
     //case 1:
     if((useHash.containsKey(op))&&(!defHash.containsKey(op))&&
        (definedByParents.contains(op))) { //check if used but not defined
-      //Operand newNonPrimOp = _operandCreator.makeNonPrim(op);
       Operand newNonPrimOp = op.getNextNonPrime();
       Instruction inst = (Instruction)(((ArrayList)useHash.get(op)).get(0)); //assuming 1st def
         								     //has same type as 
@@ -459,34 +439,12 @@ public class PrimalPromotion
       for(Iterator defInstIt = ((ArrayList)defHash.get(op)).iterator(); 
              defInstIt.hasNext();) {
         Instruction inst = (Instruction) defInstIt.next();
-        //Operand newNonPrimOp = op.getNextNonPrime();
-        //_operandCreator.addStore(op, newNonPrimOp, hyperBlockRoot, inst.type(), trueEq,
         _operandCreator.addStore(op, inst, op, hyperBlockGroups.findNode(inst, hyperBlockRoot), 
 	                         inst.type(), trueEq, hyperBlockGroups);
-        //replaceDefs(op, newNonPrimOp, defHash); 
-	System.err.println("b4 inst " + inst);
-	//inst.replaceOperand(op, newNonPrimOp);
-	System.err.println("inst " + inst);
-	System.err.println("op " + op);
-	//System.err.println("newNonPrimOp " + newNonPrimOp);
       }
-      /*Operand newNonPrimOp = op.getNextNonPrime();
-      if(replaceDefs(op, newNonPrimOp, defHash)) {
-        Instruction inst = (Instruction)(((ArrayList)defHash.get(op)).get(0)); //assuming 1st def
-									       //has same type as 
-	        							       //others
-	_operandCreator.addStore(op, newNonPrimOp, hyperBlockRoot, inst.type(), trueEq,
-	                         hyperBlockGroups);    
-      }*/
     }
     //case 3:
     else if((useHash.containsKey(op))&&(defHash.containsKey(op))) { //check if used and defined
-	//case 3 A and B were merged together because if there are multiple defs in a hyperblock
-	//there will be collisions and how can it be known which will be used by an instruction?
-	//Merge blocks will fix this, so for every def I am creating a new nonprim and storing it 
-	//to the new prim, and loading this prim for the uses (despite the fact that they are used
-	//after the definitions).  Merge blocks will sort this out and get rid of the extra loads 
-	//and stores.
       //case 3A:
       if(hyperBlockGroups.isDefinedBeforeUsed(op, hyperBlockRoot)) {
 	
@@ -500,11 +458,8 @@ public class PrimalPromotion
           for(Iterator defInstIt = ((ArrayList)defHash.get(op)).iterator(); 
     	         defInstIt.hasNext();) {
             Instruction inst = (Instruction) defInstIt.next();
-	    //Operand newNonPrimDef = op.getNextNonPrime();
-            //inst.replaceOperand(op, newNonPrimDef);
-	    _operandCreator.addStore(op, inst, op, hyperBlockRoot, inst.type(), 
+	    _operandCreator.addStore(op, inst, op, hyperBlockGroups.findNode(inst, hyperBlockRoot), inst.type(), 
 	                             trueEq, hyperBlockGroups);
-	    //replaceOp(op, newNonPrimDef, useHash, defHash, hyperBlockRoot, hyperBlockGroups); 
 	  }
 	}
       }
@@ -514,6 +469,8 @@ public class PrimalPromotion
 	//if((definedByParents.contains(op))&&(replaceUses(op, newNonPrimOp, useHash, 
 	//  					       hyperBlockRoot, hyperBlockGroups))) {
 	if(replaceUses(op, newNonPrimOp, useHash, hyperBlockRoot, hyperBlockGroups)) {
+	//if((definedByParents.contains(op))&&
+	//   (replaceUses(op, newNonPrimOp, useHash, hyperBlockRoot, hyperBlockGroups))) {
           Instruction inst = (Instruction)(((ArrayList)useHash.get(op)).get(0)); //assuming 1st use
         									 //has same type as 
         									 //others
@@ -530,21 +487,8 @@ public class PrimalPromotion
           //_operandCreator.addStore(op, newNonPrimDef, hyperBlockRoot, inst.type(), trueEq,
           _operandCreator.addStore(op, inst, newNonPrimDef, hyperBlockGroups.findNode(inst, hyperBlockRoot), 
 	                           inst.type(), trueEq, hyperBlockGroups);
-          //replaceDefs(op, newNonPrimDef, defHash); 
-	  System.err.println("b4 inst " + inst);
           inst.replaceOperand(op, newNonPrimDef);
-	  System.err.println("inst " + inst);
-	  System.err.println("op " + op);
-	  System.err.println("newNonPrimDef " + newNonPrimDef);
 	}
-	/*newNonPrimOp = op.getNextNonPrime();
-	if((usedByChildren.contains(op))&&(replaceDefs(op, newNonPrimOp, defHash))) {
-          Instruction inst = (Instruction)(((ArrayList)defHash.get(op)).get(0)); //assuming 1st def
-        									 //has same type as 
-        									 //others
-          _operandCreator.addStore(op, newNonPrimOp, hyperBlockRoot, inst.type(), trueEq,
-        			   hyperBlockGroups);
-	}*/
        
       }
     }
@@ -563,37 +507,12 @@ public class PrimalPromotion
     //if at least one def is from an alias there will already be a store inst
     boolean addLoad = true;
     Operand newOp = newUse;
-    for (Iterator useInstIt = ((ArrayList)useHash.get(oldUse)).iterator(); 
-    	 useInstIt.hasNext();) {
-      Instruction inst = (Instruction) useInstIt.next();
-      /*if((Store.conforms(inst)&&(!Store.getDestination(inst).isPrimal())) || 
-         (Load.conforms(inst)&&(!Load.getResult(inst).isPrimal()))) {
-        PrimalOperand primCpy = _operandCreator.makePrimal(oldUse);
-	Operand dest = null;
-	if(Store.conforms(inst)) {
-	  Store.setValue(inst, primCpy);
-	  dest = Store.getDestination(inst);
-	  inst.operator = Operators.LOAD;
-	}
-	if(Load.conforms(inst)) {
-	  Load.setSource(inst, primCpy);
-	  dest = Load.getResult(inst);
-        }
-	addLoad = false;
-	newOp = dest;
-	hyperBlockGroups.removeInst(cBlock, inst);
-        _operandCreator.addLoad(oldUse, cBlock, hyperBlockGroups, inst);
-      }
-      else {*/
-	inst.replaceOperand(oldUse, newUse);
-      //}
-    }
     for (Iterator useInstIt = ((ArrayList)((ArrayList)((UseHash)useHash.clone()).get(oldUse)).clone()).iterator(); 
     	 useInstIt.hasNext();) {
       Instruction inst = (Instruction) useInstIt.next();
       //useHash.remove(inst);
       inst.replaceOperand(oldUse, newOp);
-      useHash.add(inst);
+      //useHash.add(inst);
     }
     return addLoad;
       
@@ -614,21 +533,7 @@ public class PrimalPromotion
     for (Iterator defInstIt = ((ArrayList)defHash.get(oldDef)).iterator(); 
     	 defInstIt.hasNext();) {
       Instruction inst = (Instruction) defInstIt.next();
-      /*if((Store.conforms(inst)&&(!Store.getValue(inst).isPrimal())) || 
-	 (Load.conforms(inst)&&(!Load.getSource(inst).isPrimal()))) {
-	PrimalOperand primCpy = _operandCreator.makePrimal(oldDef);
-	if(Store.conforms(inst)) {
-          Store.setDestination(inst, primCpy);
-	}
-	if(Load.conforms(inst)) {
-          Load.setResult(inst, primCpy);
-          inst.operator = Operators.STORE;
-	}
-	addStore = false;
-      }
-      else {*/
-	inst.replaceOperand(oldDef, newDef);
-      //}
+      inst.replaceOperand(oldDef, newDef);
     }
     return addStore;
       
@@ -646,39 +551,13 @@ public class PrimalPromotion
     for (Iterator opInstIt = ((ArrayList)((ArrayList)useHash.get(oldOp)).clone()).iterator(); 
     	 opInstIt.hasNext();) {
       Instruction inst = (Instruction) opInstIt.next();
-      /*if((Store.conforms(inst)&&(!Store.getDestination(inst).isPrimal())) || 
-         (Load.conforms(inst)&&(!Load.getResult(inst).isPrimal()))) {
-	Operand aliasOp = null; 
-	if(Store.conforms(inst)) {
-	  aliasOp = Store.getDestination(inst);
-	}
-	if(Load.conforms(inst)) {
-	  aliasOp = Load.getResult(inst);
-        }
-        hyperBlockGroups.removeInst(hyperBlockRoot, inst);
-	replaceOp(aliasOp, newOp, useHash, defHash, hyperBlockRoot, hyperBlockGroups);
-      }
-      else*/
-        inst.replaceOperand(oldOp, newOp);
+      inst.replaceOperand(oldOp, newOp);
     }
     
     for (Iterator opInstIt = ((ArrayList)((ArrayList)defHash.get(oldOp)).clone()).iterator(); 
     	 opInstIt.hasNext();) {
       Instruction inst = (Instruction) opInstIt.next();
-      /*if((Store.conforms(inst)&&(!Store.getValue(inst).isPrimal())) || 
-	 (Load.conforms(inst)&&(!Load.getSource(inst).isPrimal()))) {
-	Operand aliasOp = null; 
-	if(Store.conforms(inst)) {
-          aliasOp = Store.getValue(inst);
-	}
-	if(Load.conforms(inst)) {
-          aliasOp = Load.getSource(inst);
-	}
-	hyperBlockGroups.removeInst(hyperBlockRoot, inst);
-	replaceOp(aliasOp, newOp, useHash, defHash, hyperBlockRoot, hyperBlockGroups );
-      }
-      else*/
-	inst.replaceOperand(oldOp, newOp);
+      inst.replaceOperand(oldOp, newOp);
     }
       
   }

@@ -115,6 +115,14 @@ public class DesignCircuitGenerator extends GenericCircuitGenerator implements C
     _memory = new MemoryInterfaceGenerator(_circuit, _mem_list);
     _memory.generate(chipInfo);
 
+    System.out.println(" MEM LIST "+_mem_list);
+
+    if (hasExternalMemories()) {
+      // disable before building
+      GlobalOptions.makeTestBench = false;
+      System.err.println("Disabling TestBench due to External Memories");
+    }
+
     // Create the global signals (clk, reset).
     if(_buildTop) {
       _circuit.insertInPort("start", "start", "start", 1);
@@ -206,6 +214,15 @@ public class DesignCircuitGenerator extends GenericCircuitGenerator implements C
   public HashMap getMemoryInterface() {
     return MemoryInterfaceGenerator.getMemoryInterface();
   }
+
+
+  public boolean hasExternalMemories() {
+    if (_mem_list != null) {
+      return _mem_list.size() > 0;
+    } else
+      return false;
+  }
+
 
   private void makeGlobalDoneSignal(BlockGraph bg) {
     int i = 0;

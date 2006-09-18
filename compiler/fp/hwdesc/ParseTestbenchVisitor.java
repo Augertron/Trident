@@ -61,15 +61,16 @@ class ParseTestbenchVisitor extends StackVisitor {
     Run _run=new Run();
     _fabin.run=_run;
     _run.time=((Number)v.elementAt(1)).intValue();
-    _run.measurement=v.elementAt(2).toString();
+    _run.unit=v.elementAt(2).toString();
   }
 
   void parseWrite(Vector v) {
     Write _write = new Write();
     _write.sector = v.elementAt(1).toString();
     if(v.size() > 3) {
-      System.err.println("Sorry but the ParseTestBenchVisitor encountered what looks to be a write to an array. I can't handle arrays yet so I'm exiting now with an error code before you get a Runtime Exception later on. Yes, this is a lazy exception.");
-      System.exit(1);
+      System.err.println("Sorry but the ParseTestBenchVisitor encountered what looks to be a write to an array.");
+      System.err.println("I cannot handle arrays yet so I am skipping this write.");
+      return;
     }
     _write.value = v.subList(2,v.size()).toArray();
     _fabin.commands.add(_write);
@@ -85,8 +86,14 @@ class ParseTestbenchVisitor extends StackVisitor {
 
   void parseWait(Vector v) {
     Wait _wait = new Wait();
-    _wait.sector = v.elementAt(1).toString();
-    _wait.duration = ((Number)v.elementAt(2)).intValue();
+    if(v.size() == 1) {
+      _wait.sector = null;
+      _wait.duration = 0;
+    }
+    else {
+      _wait.sector = v.elementAt(1).toString();
+      _wait.duration = ((Number)v.elementAt(2)).intValue();
+    }
     _fabin.commands.add(_wait);
   }
 

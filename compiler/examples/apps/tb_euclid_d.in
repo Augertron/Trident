@@ -1,22 +1,26 @@
 (fabric.in tb_euclid_d
-  # This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
-  (run 10 us)
+  ; This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
+
 
   (write .reset 1)
   (wait .reset 10)
 
   (write x2 2.121320)
+  (wait)
   (read x2 2.121320)
   (write y2 2.121320)
+  (wait)
   (read y2 2.121320)
   (write z2 4.000000)
+  (wait)
   (read z2 4.000000)
 
   (write .start 1)
 
-  (wait .done 1000)
+  (wait .done 100)
 
   (read dist 0x409FFFFF)
+  (wait)
 
 
 )

@@ -240,52 +240,55 @@ public class MSchedHash extends InstructionList
       float unrollEstartTmp = -9999;
       //int unrollEII = -9999;
       //for each immidiate predecessor:
-      for (Iterator it1 = getListOfPreds().iterator(); 
-        	it1.hasNext();) {
-	MSchedInstObject pObj = (MSchedInstObject)it1.next();
-	
-	float execTime = 0;
-	float unrollExecTime = 0;
-	//float unrollII = 0;
-	
-	//if the parent is scheduled, find the effective end time for that
-	//instruction, which is its start time plus its effective delay:
-	if(pObj.startTime >= 0)
-	  execTime = Math.max(0, pObj.startTime +
-	                         pObj.getEffectiveDelay(this.inst, ii));
-	//save the max from all parents:
-	estartTmp = Math.max(estartTmp, execTime);
-	//get the unroll start time, similarly, except use the parent's
-	//unrolled start time plus its full latency if the distance is 0
-	//and 0 if the distance is 1 (if they are in different iterations
-	//we don't care where they are with respect to each other in the 
-	//unrolled schedule since the parent should be near the end of the 
-	//unrolled loop body and the child near the beginning
-	if(pObj.unrollSt >= 0) {
-	  if(pObj.getDistance(inst)==0)
-	    unrollExecTime = Math.max(0, pObj.getRunLength() + pObj.unrollSt);
-	  else {
-	    unrollExecTime = 0;
-	    //pStTime = Math.min(pStTime, pObj.startTime);
-	    //badParents.add(pObj);
-	  }
-        }
-	//save the max unroll time:
-	unrollEstartTmp = Math.max(unrollEstartTmp, unrollExecTime);
+      if(getListOfPreds()==null) _eIICnt=0;
+      else {
+	for (Iterator it1 = getListOfPreds().iterator(); 
+        	  it1.hasNext();) {
+	  MSchedInstObject pObj = (MSchedInstObject)it1.next();
+
+	  float execTime = 0;
+	  float unrollExecTime = 0;
+	  //float unrollII = 0;
+
+	  //if the parent is scheduled, find the effective end time for that
+	  //instruction, which is its start time plus its effective delay:
+	  if(pObj.startTime >= 0)
+	    execTime = Math.max(0, pObj.startTime +
+	                           pObj.getEffectiveDelay(this.inst, ii));
+	  //save the max from all parents:
+	  estartTmp = Math.max(estartTmp, execTime);
+	  //get the unroll start time, similarly, except use the parent's
+	  //unrolled start time plus its full latency if the distance is 0
+	  //and 0 if the distance is 1 (if they are in different iterations
+	  //we don't care where they are with respect to each other in the 
+	  //unrolled schedule since the parent should be near the end of the 
+	  //unrolled loop body and the child near the beginning
+	  if(pObj.unrollSt >= 0) {
+	    if(pObj.getDistance(inst)==0)
+	      unrollExecTime = Math.max(0, pObj.getRunLength() + pObj.unrollSt);
+	    else {
+	      unrollExecTime = 0;
+	      //pStTime = Math.min(pStTime, pObj.startTime);
+	      //badParents.add(pObj);
+	    }
+          }
+	  //save the max unroll time:
+	  unrollEstartTmp = Math.max(unrollEstartTmp, unrollExecTime);
+	}
+
+	//save the max parent stop time, to this instruction's _estart private
+	//variable
+	_estart = estartTmp;
+	//set the earliest number of iterations of the modulo scheduled block
+	//before this executes to the unrolled time divided by ii-1 
+	//(remember, the modulo scheduled block contains different parts of
+	//the unrolled loop body and for data to travel through from the start
+	//to this instruction, it must pass through the number of iterations
+	//of the modulo scheduled body that would execute in the time it 
+	//would take for the data to get to this instruction in the unrolled 
+	//loop):
+	_eIICnt = (int)(unrollEstartTmp/(ii));
       }
-      
-      //save the max parent stop time, to this instruction's _estart private
-      //variable
-      _estart = estartTmp;
-      //set the earliest number of iterations of the modulo scheduled block
-      //before this executes to the unrolled time divided by ii-1 
-      //(remember, the modulo scheduled block contains different parts of
-      //the unrolled loop body and for data to travel through from the start
-      //to this instruction, it must pass through the number of iterations
-      //of the modulo scheduled body that would execute in the time it 
-      //would take for the data to get to this instruction in the unrolled 
-      //loop):
-      _eIICnt = (int)(unrollEstartTmp/(ii));
     }
 
     /**
@@ -305,7 +308,7 @@ public class MSchedHash extends InstructionList
       //pipelined instructions start on even clock edges and non-pipelined
       //instructions don't run over a boundary:
       CorrectStartTimes adjustTimes = new CorrectStartTimes(inst, _chipdef,
-							    _packNicht);
+							    !GlobalOptions.packInstructions);
     
       //Loads and store instructions must be handled differently.  The
       //problem is that if a store to a register occurs in the same cycle
@@ -359,7 +362,7 @@ public class MSchedHash extends InstructionList
 //the others don't spill over cycle boundaries!!!!!
       
       while((scheduleTime == -1)&&(currTime <= ii)) {
-	if((!_chipdef.analyzeHardwareUse(inst, (int)currTime))||
+	if((!_chipdef.analyzeHardwareUse(_bNode, inst, (int)currTime))||
 	   (!_loadStore.testObsGenugZeitGibt(this, ii, currTime))||
 	   (Math.abs(adjustTimes.getCorrectedStartTime(currTime)-currTime) 
 	        > 0.001))//||
@@ -377,7 +380,7 @@ public class MSchedHash extends InstructionList
       //this is legal, even though it is later than estart, because it
       //is one iteration of hte mod sched block later):
       while((scheduleTime == -1) && (currTime <= _estart)) {
-	if((!_chipdef.analyzeHardwareUse(inst, (int)currTime))||
+	if((!_chipdef.analyzeHardwareUse(_bNode, inst, (int)currTime))||
 	   (!_loadStore.testObsGenugZeitGibt(this, ii, currTime))||
 	   (Math.abs(adjustTimes.getCorrectedStartTime(currTime)-currTime) 
 	        > 0.001))//||
@@ -894,7 +897,7 @@ public class MSchedHash extends InstructionList
 	float storeStartTime = ii-1-storeInstObj.getRunLength();
 	CorrectStartTimes cPredStopTimeS = new CorrectStartTimes(storeInst,
         							 _chipdef,
-	        						 _packNicht);
+	        						 !GlobalOptions.packInstructions);
 	float cPredStopTime = cPredStopTimeS.getCorrectedStartTime(storeStartTime);
 	storeInstObj._iiCnt= iiCnt + 
 			    (int)((cPredStopTime-predStopTime)/ii);
@@ -926,7 +929,7 @@ public class MSchedHash extends InstructionList
 	  _opSel.select(storeInst);
 	  storeInstObj = new MSchedInstObject(storeInst);
 	  //cPredStopTimeS = new CorrectStartTimes(storeInst, _chipdef, 
-	  //					   _packNicht);
+	  //					   !GlobalOptions.packInstructions);
 	  //cPredStopTime = cPredStopTimeS.getCorrectedStartTime(getLoadTime());
 	  
 	  //schedule to ii-1 and iteration n:
@@ -1187,7 +1190,7 @@ public class MSchedHash extends InstructionList
 	  MSchedInstObject storeInstObj = new MSchedInstObject(storeInst);
 	  CorrectStartTimes cPredStopTimeS = new CorrectStartTimes(_storeInst,
                                                                    _chipdef,
-							           _packNicht);
+							           !GlobalOptions.packInstructions);
 	  float cPredStopTime = cPredStopTimeS.getCorrectedStartTime(predStopTime);
 	  //add((float)cPredStopTime, storeInstObj);
 	  storeInstObj._iiCnt=_storesToAdd.get(op) + 
@@ -1244,7 +1247,7 @@ public class MSchedHash extends InstructionList
 	    MSchedInstObject storeInstObj = new MSchedInstObject(storeInst);
 	    CorrectStartTimes cPredStopTimeS = new CorrectStartTimes(_storeInst,
                                                                      _chipdef,
-							             _packNicht);
+							             !GlobalOptions.packInstructions);
 	    float cPredStopTime = cPredStopTimeS.getCorrectedStartTime(predStopTime);
 	    //add((float)cPredStopTime, storeInstObj);
 	    storeInstObj._iiCnt=0;
@@ -1285,9 +1288,9 @@ public class MSchedHash extends InstructionList
                                         float startTime) {
     
       float storeStTime = startTime + instObj.getRunLength();
-      CorrectStartTimes corrStoreStTime = new CorrectStartTimes(_storeInst,
-                                                                _chipdef,
-							        _packNicht);
+      CorrectStartTimes corrStoreStTime = 
+	new CorrectStartTimes(_storeInst, _chipdef, !GlobalOptions.packInstructions);
+
       float corrStStTime = corrStoreStTime.getCorrectedStartTime(storeStTime);
       //if there is not enough time after the instruction is finished, for
       //a store to fit return false (though if the instruction has no
@@ -1314,22 +1317,28 @@ public class MSchedHash extends InstructionList
     a store after it (if it has no children).  If the answer is no, we
     already know, this ii is too small, and stop trying to mod schedule the
     loop with this ii.
+
+    FIX THIS?
+
     */
     public boolean testIfSchedPossible(MSchedInstObject instObj, int ii) {
     
       float startTime = getLoadTime();
       if(instObj.getNoPreds())
         startTime = 0;
-      CorrectStartTimes corrInstStTime = new CorrectStartTimes(instObj.inst,
-                                                               _chipdef,
-							       _packNicht);
+
+      CorrectStartTimes corrInstStTime = 
+	new CorrectStartTimes(instObj.inst, _chipdef, !GlobalOptions.packInstructions);
+
       float corrstartTime = corrInstStTime.getCorrectedStartTime(startTime);
       float storeStTime = corrstartTime + instObj.getRunLength();
-      CorrectStartTimes corrStoreStTime = new CorrectStartTimes(_storeInst,
-                                                                _chipdef,
-							        _packNicht);
+
+      CorrectStartTimes corrStoreStTime 
+	= new CorrectStartTimes(_storeInst, _chipdef, !GlobalOptions.packInstructions);
+
       float corrStStTime = corrStoreStTime.getCorrectedStartTime(storeStTime);
       float storeEndTime = corrStStTime + getStoreTime();
+
       if(instObj.getNoSuccs())
         storeEndTime = corrStStTime;
       if(storeEndTime > ii - 1)
@@ -1708,10 +1717,6 @@ public class MSchedHash extends InstructionList
   /** a pointer to the hardware info class
   */
   private ChipDef _chipdef = null;
-  /** saves whether to place instructions shorter than a cycle within the
-  same cycle
-  */
-  private boolean _packNicht = GlobalOptions.doNotPackInstrucs;
   /** this is a counter used by SaveStoresNLoads to help create unique
   modPrim variables for each operand.  It is static so that if there are
   multiple loops in the design, each loop will have unique modPrim variables
@@ -1732,6 +1737,8 @@ public class MSchedHash extends InstructionList
   */
   private int _maxII = -999;
   
+  private BlockNode _bNode;
+  
   public MSchedHash() {
     super();
     _loadStore = new LoadStoreObject();
@@ -1746,12 +1753,13 @@ public class MSchedHash extends InstructionList
   }
 
   public MSchedHash(ChipDef chipdef, DependenceFlowGraph dfg, 
-                    OperationSelection opSel) {
+                    OperationSelection opSel, BlockNode bNode) {
     //InstructionList also needs the chipdef and dfg:
     super(chipdef, dfg);
     _chipdef = chipdef;
     _opSel = opSel;
     _dfg = dfg;
+    _bNode = bNode;
     _loadStore = new LoadStoreObject();
     _minDistMat = new MinDistMatrix();
     _saveStoresNLoads = new SaveStoresNLoads();
@@ -1780,7 +1788,7 @@ public class MSchedHash extends InstructionList
     float unrltimeOfFstInst = 999;
     float timeOfFstInst = 0;
     //create a new schedule to hold the unrolled schedule:
-    MSchedHash unrolledSched = new MSchedHash(_chipdef, null, _opSel);
+    MSchedHash unrolledSched = new MSchedHash(_chipdef, null, _opSel, _bNode);
     //for each instruction
     for (Iterator it1 = ((HashSet)getInstSet().clone()).iterator(); it1.hasNext();) {
       MSchedInstObject instObj = (MSchedInstObject)it1.next();
@@ -1851,63 +1859,56 @@ public class MSchedHash extends InstructionList
              it1.hasNext();) {
       MSchedInstObject cObj = (MSchedInstObject)it1.next();
       //foreach predecessor of that instruction
-      for (Iterator it2 = cObj.getListOfPreds().iterator(); 
-      	      it2.hasNext();) {
-        MSchedInstObject pObj = (MSchedInstObject)it2.next();
-	//if the parent is a store to a primal, no more loads and stores are
-	//necessary as it will already carry the data over the loop edge
-	if((Store.conforms(pObj.inst))&&
-	   (Store.getDestination(pObj.inst).isPrimal()))
-	  continue;
-	//find out when the parent is finished executing
-	float pStopTime = pObj.startTime + pObj.getRunLength();
-	if(pStopTime > ii)
-	  pStopTime -= ii;
-	
-       System.out.println("pObj " + pObj);
-       System.out.println("pObj._iiCnt " + pObj._iiCnt);
-       System.out.println("pObj.startTime " + pObj.startTime);
-       System.out.println("pObj.getDistance(cObj.inst) " + pObj.getDistance(cObj.inst));
-       System.out.println("cObj " + cObj);
-       System.out.println("cObj._iiCnt " + cObj._iiCnt);
-       System.out.println("cObj.startTime " + cObj.startTime);
-	//if the parent is scheduled at an earlier iteration of the modulo
-	//scheduled loop block than its child, then loads and stores will be
-	//necessary to carry its data to the child
-	if((pObj._iiCnt < cObj._iiCnt)||
-	   ((pObj._iiCnt == cObj._iiCnt)&&
-	    (pObj.startTime > cObj.startTime)&&
-	    (pObj.getDistance(cObj.inst)==0))) {
-	  //int iiCnt = (int)((pObj.unrollSt + pObj.getRunLength())/ii);
-	  //Type type = pObj.inst.type();
-	  
-	  //save the load and store, the iteration, the iteration
-	  //difference between parent and child, the connecting operands,
-	  //the child object, and the time when the parent is finished 
-	  //executing
-	  
-	  if((pObj._iiCnt == cObj._iiCnt)&&
-	     (pObj.startTime > cObj.startTime)&&
-	     (pObj.getDistance(cObj.inst)==0)) {
-	    cObj._iiCnt++;
-	    cObj.unrollSt += ii;
-	  }
-	  
-	  System.out.println("adding ls between " + pObj + " and " + cObj);
-	  _saveStoresNLoads.saveLS(pObj._iiCnt, cObj._iiCnt - pObj._iiCnt, 
-	                           cObj.getPredConnsAll(pObj.inst), cObj, 
-				   pStopTime);
-	  
-	  
-	  //_loadStore.saveLoads(cObj._iiCnt, cObj.getPredConnsAll(pObj.inst), 
-	  //                     cObj);
-	  //_loadStore.saveStores(iiCnt, pObj.getSuccConnsAll(cObj.inst),
-	  //                      type, pStopTime, pObj);
-	}
-	//else
-	//  _loadStore.changeBlockNames(cObj.getPredConns(pObj.inst), cObj);
+      if(cObj.getListOfPreds() != null)
+	for (Iterator it2 = cObj.getListOfPreds().iterator(); 
+      		it2.hasNext();) {
+          MSchedInstObject pObj = (MSchedInstObject)it2.next();
+	  //if the parent is a store to a primal, no more loads and stores are
+	  //necessary as it will already carry the data over the loop edge
+	  if((Store.conforms(pObj.inst))&&
+	     (Store.getDestination(pObj.inst).isPrimal()))
+	    continue;
+	  //find out when the parent is finished executing
+	  float pStopTime = pObj.startTime + pObj.getRunLength();
+	  if(pStopTime > ii)
+	    pStopTime -= ii;
 
-      }
+	  //if the parent is scheduled at an earlier iteration of the modulo
+	  //scheduled loop block than its child, then loads and stores will be
+	  //necessary to carry its data to the child
+	  if((pObj._iiCnt < cObj._iiCnt)||
+	     ((pObj._iiCnt == cObj._iiCnt)&&
+	      (pObj.startTime > cObj.startTime)&&
+	      (pObj.getDistance(cObj.inst)==0))) {
+	    //int iiCnt = (int)((pObj.unrollSt + pObj.getRunLength())/ii);
+	    //Type type = pObj.inst.type();
+
+	    //save the load and store, the iteration, the iteration
+	    //difference between parent and child, the connecting operands,
+	    //the child object, and the time when the parent is finished 
+	    //executing
+
+	    if((pObj._iiCnt == cObj._iiCnt)&&
+	       (pObj.startTime > cObj.startTime)&&
+	       (pObj.getDistance(cObj.inst)==0)) {
+	      cObj._iiCnt++;
+	      cObj.unrollSt += ii;
+	    }
+
+	    _saveStoresNLoads.saveLS(pObj._iiCnt, cObj._iiCnt - pObj._iiCnt, 
+	                             cObj.getPredConnsAll(pObj.inst), cObj, 
+				     pStopTime);
+
+
+	    //_loadStore.saveLoads(cObj._iiCnt, cObj.getPredConnsAll(pObj.inst), 
+	    //                     cObj);
+	    //_loadStore.saveStores(iiCnt, pObj.getSuccConnsAll(cObj.inst),
+	    //                      type, pStopTime, pObj);
+	  }
+	  //else
+	  //  _loadStore.changeBlockNames(cObj.getPredConns(pObj.inst), cObj);
+
+	}
     }
     //_loadStore.addLoads(ii);
     //_loadStore.addStores(ii);
@@ -2081,7 +2082,7 @@ public class MSchedHash extends InstructionList
     int iiCntTmp = instObj._iiCnt;
     //tell chipdef that he's no longer using these hardware resources at
     //this time:
-    _chipdef.removeFromTime(instObj.inst, (int)instObj.startTime);
+    _chipdef.removeFromTime(_bNode, instObj.inst, (int)instObj.startTime);
     instObj.startTime = -1;
     instObj.unrollSt = -1;
     instObj._iiCnt = -1;
@@ -2115,7 +2116,7 @@ public class MSchedHash extends InstructionList
     //save the time of the end of the longest miniloop
     _maxII = Math.max(_maxII, instObj._iiCnt);
     //save hardware usage at this time due to this instruction:
-    _chipdef.saveNewHardwareUsage(instObj.inst, (int)execTime);
+    _chipdef.saveNewHardwareUsage(_bNode, instObj.inst, (int)execTime);
   }
   
   /**
@@ -2130,7 +2131,8 @@ public class MSchedHash extends InstructionList
     InstHashSet unscheduledInstSet = new InstHashSet();
     
     //see who needs to be unscheduled due to hardware conflicts:
-    unscheduledInstSet.addAll(_chipdef.killConflictingInstrucs(instObj.inst, 
+    unscheduledInstSet.addAll(_chipdef.killConflictingInstrucs(_bNode, 
+                                                               instObj.inst, 
                                                                (int)execTime,
                                                                this));
     

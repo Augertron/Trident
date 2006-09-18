@@ -77,8 +77,13 @@ public class RemoveRem extends Pass implements BlockPass {
 	      instAdditionList.add(Binary.create(Operators.SHR, Type.Int, shRResult, shLResult,
 	                           constOperand, new BooleanEquation(true))); 
 	      Operand negatedRes = Operand.newBlock("res1");
-	      instAdditionList.add(Unary.create(Operators.INV, Type.Int, negatedRes, shRResult,
-	                           new BooleanEquation(true))); 
+
+	      instAdditionList.add(Binary.create(Operators.SUB, Type.Int, negatedRes, constZero, 
+						 shRResult, new BooleanEquation(true))); 
+	      // jt -- this is a hack to prevent having to build an invert integer operation.
+	      //
+	      //instAdditionList.add(Unary.create(Operators.INV, Type.Int, negatedRes, shRResult,
+	      //                     new BooleanEquation(true))); 
 	      instAdditionList.add(Select.create(Operators.SELECT, Type.Int, Binary.getResult(inst), 
 	      				         pred, negatedRes, shRResult, new BooleanEquation(true)));
 	      

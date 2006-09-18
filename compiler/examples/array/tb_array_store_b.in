@@ -1,0 +1,14 @@
+(fabric.in tb_array_simple_a
+  (write .reset 1)
+  (wait .reset 10)
+
+  (write N 1.0 2.0)
+  (write P 5.0 6.0)
+
+  (write .start 1)
+  (wait .done 50)
+
+  (read N 1.0 2.0)
+  (read P 5.0 7.0)
+
+)

@@ -70,43 +70,48 @@ public class ConstantSelect extends Pass implements BlockPass {
 	node.removeInstruction(inst);
       }
 
-      if (subsMap.size() > 0) {
-	HashMap instMap = new HashMap();
+      boolean change;
+      do {
+	change = false;
+	if (subsMap.size() > 0) {
+	  HashMap instMap = new HashMap();
 
-	for(Iterator iter = list.iterator(); iter.hasNext(); ) {
-	  Instruction inst = (Instruction) iter.next(); 
+	  for(Iterator iter = list.iterator(); iter.hasNext(); ) {
+	    Instruction inst = (Instruction) iter.next(); 
 
-	  // Check uses for any substitutions.
-	  int numDefs = inst.getNumberOfDefs();
-	  int numUses = inst.getNumberOfUses();
-	  for(int i = numDefs; i < (numDefs + numUses); i++) {
-	    Operand use = inst.getOperand(i);
-	    Operand useSub = (Operand)(subsMap.get(use));
+	    // Check uses for any substitutions.
+	    int numDefs = inst.getNumberOfDefs();
+	    int numUses = inst.getNumberOfUses();
+	    for(int i = numDefs; i < (numDefs + numUses); i++) {
+	      Operand use = inst.getOperand(i);
+	      Operand useSub = (Operand)(subsMap.get(use));
 
-	    // Record the substitution we will make later
-	    if (useSub != null) {
-	      instMap.put(inst, use);
+	      // Record the substitution we will make later
+	      if (useSub != null) {
+	  	instMap.put(inst, use);
+	      }
 	    }
 	  }
-	}
 
-	Set instSet = instMap.keySet();
+	  Set instSet = instMap.keySet();
 
-	// Remove all the instructions that need substitutions 
-	for(Iterator iter = instSet.iterator(); iter.hasNext(); ) {
-	  Instruction inst = (Instruction) iter.next(); 
-	  node.removeInstruction(inst);
-	}
+	  // Remove all the instructions that need substitutions 
+	  for(Iterator iter = instSet.iterator(); iter.hasNext(); ) {
+	    Instruction inst = (Instruction) iter.next(); 
+	    node.removeInstruction(inst);
+	  }
 
-	// make the substitution
-	for(Iterator iter = instSet.iterator(); iter.hasNext(); ) {
-	  Instruction inst = (Instruction) iter.next(); 
-	  Operand use = (Operand)instMap.get(inst);
-	  Operand useSub = (Operand)(subsMap.get(use));
-	  inst.replaceOperand(use, useSub);
-	  node.addInstruction(inst);
+	  // make the substitution
+	  for(Iterator iter = instSet.iterator(); iter.hasNext(); ) {
+	    Instruction inst = (Instruction) iter.next(); 
+	    Operand use = (Operand)instMap.get(inst);
+	    Operand useSub = (Operand)(subsMap.get(use));
+	    inst.replaceOperand(use, useSub);
+	    node.addInstruction(inst);
+	    change = true;
+	  }
 	}
-      }
+      } while(change == true);
     }
     
     return true;

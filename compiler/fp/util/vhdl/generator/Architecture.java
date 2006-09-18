@@ -44,7 +44,9 @@ public class Architecture extends Block {
     for (ListIterator iter = itemNames.listIterator(); iter.hasNext(); ) {
       String itemName = (String)iter.next();
       if (_nameSet.contains(itemName.toLowerCase())) {
-	System.out.println("CODEGEN:  Found a duplicate name:" + itemName);
+	// jt - we don't need this warning since it does not tell us much
+	// these duplications will happen.
+	//System.out.println("CODEGEN:  Found a duplicate name:" + itemName);
 	return;
       } 
     }
@@ -62,6 +64,7 @@ public class Architecture extends Block {
   HashSet getItems() { return _itemSet; }
 
   public void addStatement(Statement s) { _statements.add(s); }
+  public void addStatementComment(String c) { _statements.add(new Comment(c)); }
   LinkedList getStatements() { return _statements; }
 
   protected void appendName(StringBuffer sbuf, String pre) {

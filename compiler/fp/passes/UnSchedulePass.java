@@ -39,7 +39,7 @@ public class UnSchedulePass extends Pass implements GraphPass {
     for (Iterator vIt = (new HashSet(graph.getAllNodes())).iterator(); vIt.hasNext();) {
       BlockNode node = (BlockNode) vIt.next();
       if(node.getInstructions().size()==0) continue;
-      Schedule sched = new Schedule(false, node);
+      Schedule sched = new Schedule(node);
       sched.unSchedule();
     }    
     //Schedule.unSchedule();

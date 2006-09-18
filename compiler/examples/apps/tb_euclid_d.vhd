@@ -201,7 +201,7 @@ end tb_top_arch;
 
 --- Test input
 --- @ asim -lib work tb_top
---- @ run 1000ns
+--- @ run 1500ns
 --- @ exit
 
 

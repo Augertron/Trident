@@ -1,5 +1,5 @@
 (fabric.in tb_type_float
-  # This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
+  ; This file was automatically created based on the VHDL test bench and using the perl script makefabinfiles.pl
 
   (run 8 us)
 
@@ -8,8 +8,10 @@
   (wait .reset 10)
 
   (write a -5.000000)
+  (wait)
   (read a -5.000000)
   (write b 8.000000)
+  (wait)
   (read b 8.000000)
 
   (write .start 1)
@@ -21,8 +23,10 @@
 
   # next test
   (write a 6.000000)
+  (wait)
   (read a 6.000000)
   (write b -14.000000)
+  (wait)
   (read b -14.000000)
 
   (write .start 1)
@@ -34,8 +38,10 @@
 
   # next test
   (write a 22.000000)
+  (wait)
   (read a 22.000000)
   (write b 21.000000)
+  (wait)
   (read b 21.000000)
 
   (write .start 1)
@@ -47,8 +53,10 @@
 
   # next test
   (write a -1.000000)
+  (wait)
   (read a -1.000000)
   (write b -5.000000)
+  (wait)
   (read b -5.000000)
 
   (write .start 1)

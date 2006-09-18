@@ -458,13 +458,11 @@ public class ModSched extends Schedule
    a factor for determining how many times to attempt modulo scheduling for any
    given II.
    */
-   private float _budgetRatio;
    private OperationSelection _opSel;
    
-   public ModSched(float budgetRatio, OperationSelection opSel, 
+   public ModSched(OperationSelection opSel, 
                    BlockNode node) {
-     super(false, node);
-     _budgetRatio = budgetRatio;
+     super(node);
      _opSel = opSel;
    }
 
@@ -584,7 +582,7 @@ public class ModSched extends Schedule
 						       + "_mod_scheduled");
      //create the MSchedHash and tell it to read in the instructions from the
      //node
-     MSchedHash modSched = new MSchedHash(chipInfo, dfg, _opSel);
+     MSchedHash modSched = new MSchedHash(chipInfo, dfg, _opSel, node);
      modSched.readInList(node);
      for (Iterator itin = muxGen.savePredOps.keySet().iterator(); 
        itin.hasNext(); ) {
@@ -595,10 +593,8 @@ public class ModSched extends Schedule
      for (Iterator itin = muxGen.saveSuccOps.keySet().iterator(); 
        itin.hasNext(); ) {
        Instruction i = (Instruction)itin.next();
-       if(i==null) {System.err.println("i " + i); continue;}
+       if(i==null) {continue;}
        Operand op = (Operand)muxGen.saveSuccOps.get(i);
-       System.err.println("i " + i);
-       System.err.println("op " + op);
        modSched.addNewOuts(i, op);
      }
      
@@ -622,14 +618,14 @@ public class ModSched extends Schedule
 
      //schedule:
      int ii = mII;
-     System.out.println("before scheduling ");
+     /*System.out.println("before scheduling ");
      modSched.printSchedule();
      System.out.println(" ");
      System.out.println(" ");
      System.out.println(" ");
-     System.out.println(" ");
+     System.out.println(" ");*/
      chipInfo.resetPorts();
-     while((!modSched.iterativeSchedule(ii, (int)(_budgetRatio * modSched.size())))&&
+     while((!modSched.iterativeSchedule(ii, (int)(GlobalOptions.budgetRatio * modSched.size())))&&
     	   (ii<=modSched.getMaxRunTime())) {
        ii++;
        //these are various initializations to reset hardware usage so that 
@@ -654,11 +650,11 @@ public class ModSched extends Schedule
      
      //I'm leaving a lot of these print statements in (but commented out), 
      //because it is often very useful to track the changes to the schedule
-     System.out.println("used ii of " + ii);
+     /*System.out.println("used ii of " + ii);
      System.out.println("b4 ls and ss ");
      modSched.printSchedule();
      System.out.println(" ");
-     System.out.println(" ");
+     System.out.println(" ");*/
      //save the predicate store and logic created above:
      //modSched.savePredLogicInsts(muxGen.getPredLogic());
      //make all mini loops in the schedule the same length
@@ -669,11 +665,11 @@ public class ModSched extends Schedule
      modSched.addLoadsAndStores(ii);
      //dfg.writeDotFile("aftaaddls");
      
-     System.out.println("after ls and ss ");
+     /*System.out.println("after ls and ss ");
      modSched.printSchedule();
      System.out.println(" ");
      System.out.println(" ");
-     System.out.println("unrolled schedule ");
+     System.out.println("unrolled schedule ");*/
      
      //now it's time to create the prolog and epilog.  First, we need to unroll
      //the schedule.  
@@ -698,17 +694,17 @@ public class ModSched extends Schedule
      //clean up some memory:
      modSched = null;
      
-     unrolledList.printSchedule();
+     /*unrolledList.printSchedule();
      System.out.println(" ");
      System.out.println(" ");
-     System.out.println("unrolled schedule after remove stuff");
+     System.out.println("unrolled schedule after remove stuff");*/
      //delete the predicate store, logic instructions from the unrolled list,
      //because they are for the kernal only (to understand this please look at
      //MuxTableGenerator.java)
      unrolledList.removeInsts(newInsts);
-     unrolledList.printSchedule();
+     /*unrolledList.printSchedule();
      System.out.println(" ");
-     System.out.println(" ");
+     System.out.println(" ");*/
      MuxAdder muxAdder = new MuxAdder();
      
      /**
@@ -829,11 +825,11 @@ public class ModSched extends Schedule
        //copy its instructions from the unrolled loop to the prolog list
        InstructionList oneItProList = unrolledList.partialListCopy(0, max-start);
        
-       System.out.println("one iteration of prolog ");
+       /*System.out.println("one iteration of prolog ");
        oneItProList.printSchedule();
        System.out.println(" ");
        System.out.println(" ");
-       System.out.println("prolog after killing P's "); 
+       System.out.println("prolog after killing P's "); */
        
        /*DependenceFlowGraph dfg2 = new DependenceFlowGraph(graph.getName() + "_" +  node.getLabel().getName() 
 	  						 + "_tmp_mod_scheduled");
@@ -847,39 +843,39 @@ public class ModSched extends Schedule
      System.out.println("saved DFG");*/
        //delete chains of loads and stores to get rid of the mod prim variables
        oneItProList.killLSChains();
-       oneItProList.printSchedule();
+       /*oneItProList.printSchedule();
        System.out.println(" ");
        System.out.println(" ");
-       System.out.println("prolog after removing block to block copies ");
+       System.out.println("prolog after removing block to block copies ");*/
        //delete block to block aliases
        oneItProList.killEmBlockToBlockCopies();
-       oneItProList.printSchedule();
+       /*oneItProList.printSchedule();
        System.out.println(" ");
        System.out.println(" ");
-       System.out.println("prolog after removing block defining ckts ");
+       System.out.println("prolog after removing block defining ckts ");*/
        //delete groups of instructions that result only in the definition of
        //block operands 
        oneItProList.killBlockDefiningCircuits();
-       oneItProList.printSchedule();
+       /*oneItProList.printSchedule();
        System.out.println(" ");
-       System.out.println(" ");
+       System.out.println(" ");*/
        //add this iteration to the whole prolog list
        proList.addAll(oneItProList);
      }
        proList.removeDuplicateInsts();
-       System.out.println("whole pro before removing duplicates ");
+       /*System.out.println("whole pro before removing duplicates ");
      proList.printSchedule();
        System.out.println(" ");
-       System.out.println(" ");
+       System.out.println(" ");*/
      //remove duplicate sets of instructions
      //proList.removeDuplicateInsts();
-       System.out.println("final pro ");
+       /*System.out.println("final pro ");
      proList.printSchedule();
        System.out.println(" ");
        System.out.println(" ");
 
        System.out.println(" ");
-       System.out.println(" ");
+       System.out.println(" ");*/
      /**
      ******************************************************************
      epilog creation
@@ -944,11 +940,11 @@ public class ModSched extends Schedule
        InstructionList oneItEpiList =
                           unrolledList.partialListCopyNewBlocks(start, max);
        
-       System.out.println("one iteration of epilog ");
+       /*System.out.println("one iteration of epilog ");
        oneItEpiList.printSchedule();
        System.out.println(" ");
        System.out.println(" ");
-       System.out.println("epilog after killing P's ");
+       System.out.println("epilog after killing P's ");*/
        
       /* DependenceFlowGraph dfg3 = new DependenceFlowGraph(graph.getName() + "_" +  node.getLabel().getName() 
 	  						  + "_tmp_mod_scheduled");
@@ -961,17 +957,17 @@ public class ModSched extends Schedule
        //the kernal loop boundaries
        oneItEpiList.killLSChains();
        
-       oneItEpiList.printSchedule();
+       /*oneItEpiList.printSchedule();
        System.out.println(" ");
        System.out.println(" ");
-       System.out.println("epilog after removing block to block copies ");
+       System.out.println("epilog after removing block to block copies ");*/
        
        //delete aliases caused by loading or storing blocks to blocks
        oneItEpiList.killEmBlockToBlockCopies();
        
-       oneItEpiList.printSchedule();
+       /*oneItEpiList.printSchedule();
        System.out.println(" ");
-       System.out.println(" ");
+       System.out.println(" ");*/
        
        //call addMuxes, to take note of primals that need mux trees and to
        //change the instructions to define an iteration and primal specific 
@@ -979,10 +975,10 @@ public class ModSched extends Schedule
        //storing to
        muxAdder.addMuxes(oneItEpiList, muxGen, loopExitPredicate);
        
-       System.out.println("epilog after adding muxes ");
+       /*System.out.println("epilog after adding muxes ");
        oneItEpiList.printSchedule();
        System.out.println(" ");
-       System.out.println(" ");
+       System.out.println(" ");*/
        
        //add this iteration to the whole epilog list:
        epiList.addAll(oneItEpiList);
@@ -1008,21 +1004,21 @@ public class ModSched extends Schedule
      //all instructions to use this.
      muxGen.replaceOpsWithNewMPrimBs(epiList.getInstructions());
      
-       System.out.println("removing mod prim loads ");
+       /*System.out.println("removing mod prim loads ");
      epiList.printSchedule();
        System.out.println(" ");
-       System.out.println(" ");
+       System.out.println(" ");*/
      
      //Here we add the mux tree, its control logic, the kernal predicate stuff,
      //and the new modPrim loads (see MuxTableGenerator.java for more)
      epiList.addAllInsts(muxGen.genMuxTable());
      
-       System.out.println("adding muxes ");
+       /*System.out.println("adding muxes ");
      epiList.printSchedule();
        System.out.println(" ");
        System.out.println(" ");
      System.out.println("epilog after removing block defining ckts ");
-     System.out.println("epilog after cseremoval ");
+     System.out.println("epilog after cseremoval ");*/
      
      /**
      this is some really bad coding style, but sorry, I was feeling lazy
@@ -1051,9 +1047,9 @@ public class ModSched extends Schedule
      System.out.println("epilog after removing block defining ckts ");*/
      epiList.killBlockDefiningCircuits();
      
-     epiList.printSchedule();
+     /*epiList.printSchedule();
        System.out.println(" ");
-       System.out.println(" ");
+       System.out.println(" ");*/
      
      //delete duplicate instructions
      epiList.removeDuplicateInsts();
@@ -1062,8 +1058,8 @@ public class ModSched extends Schedule
      //sched blocks care about them
      deleteStoresToModPrims(epiList);
      
-       System.out.println("final epi ");
-     epiList.printSchedule();
+       /*System.out.println("final epi ");
+     epiList.printSchedule();*/
      
      //run op select on all the new instructions added by MuxTableGenerator
      for (Iterator it = epiList.getInstructions().iterator(); 
