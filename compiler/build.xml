@@ -196,12 +196,10 @@
 
     <exec executable="make" failonerror="true" dir="${basedir}/doc/manual">
     </exec>
-    <copy todir="${dist}/docs" filtering="true" >
-      <fileset dir="doc/manual" includes="**/*.pdf" excludes="**/figures/*" />
+    <copy todir="${dist}/docs" filtering="false" >
+      <fileset dir="doc/manual" includes="**/*.pdf, **/*.tex, **/*.sty, **/*.bib, **/Makefile, **/*.fig" excludes="**/figures/*.pdf **/figures/*.eps" />
     </copy>
-    <copy todir="${dist}/docs" filtering="true" >
-      <fileset dir="doc/manual" includes="**/*.pdf" excludes="**/figures/*" />
-    </copy>
+
     <copy todir="${dist}/" filtering="true" >
       <fileset dir="doc/top" excludes="**/README*" />
     </copy>
@@ -224,12 +222,13 @@
     </copy>
 
     <mkdir dir="${dist}/examples"/>
-    <copy todir="${dist}/examples" filtering="true" >
+    <copy todir="${dist}/examples" filtering="true" includeEmptyDirs="false" >
       <fileset dir="examples" 
-         excludes="**/*.xml, **/*.in, **/Make*, **/tb_*, **/call/*, **/apps/*, **/photon/*"  />
+         excludes="**/*.xml, **/*.in, **/Make*, **/tb_*, **/call/*, **/apps/*, **/photon/photon.c" />
  
     </copy>
 
+    
     <mkdir dir="${dist}/lib/conf"/>
     <copy todir="${dist}/lib/conf" filtering="true" >
        <fileset dir="lib/conf"/>
@@ -317,7 +316,13 @@
     </ant>
   </target>
 
-  <target name="clean" depends="clean-fp,clean-examples,clean-llv">
+  <target name="clean-manual"> 
+     <exec executable="make" failonerror="true" dir="${basedir}/doc/manual">
+        <arg line="veryclean"/>
+     </exec>
+  </target>
+
+  <target name="clean" depends="clean-fp,clean-examples,clean-llv,clean-manual">
     <echo message="Clean fp, llv, tests and examples"/>
   </target>
 
